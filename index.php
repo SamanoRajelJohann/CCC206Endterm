@@ -107,8 +107,8 @@ $mysqli->close();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
-    <link rel="stylesheet" href="img&css/style.css">
-    <link rel="icon" type="image/png" href="img&css/Followers.png">
+    <link rel="stylesheet" href="  css/style.css">
+    <link rel="icon" type="image/png" href="img/Followers.png">
     <title>Rhine Lab</title>
 </head>
 <body>
@@ -137,11 +137,11 @@ $mysqli->close();
         <div class="toggle-container">
             <div class="toggle">
                 <div class="toggle-panel toggle-left">
-                    <img src="img&css/Followers.png" alt="">
+                    <img src="img/Followers.png" alt="">
                     <button class="hidden" id="login">Sign In</button>
                 </div>  
                 <div class="toggle-panel toggle-right">
-                    <img src="img&css/Followers.png" alt="">
+                    <img src="img/Followers.png" alt="">
                     <button class="hidden" id="register">Sign Up</button>
                 </div>
             </div>
