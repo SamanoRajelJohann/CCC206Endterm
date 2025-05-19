@@ -4,111 +4,119 @@ require_once("db.php");
 
 // Check if user is logged in
 if (!isset($_SESSION['logged_in'])) {
-    $_SESSION['error'] = "Please login to checkout";
+    $_SESSION['error'] = "Please login to proceed with checkout";
     header("Location: index.php");
     exit();
 }
 
 $account_id = $_SESSION['id'];
 
-// Handle order placement
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
-    $shipping_address = trim($_POST['shipping_address']);
-    $phone = trim($_POST['phone']);
-    
-    if (empty($shipping_address) || empty($phone)) {
-        $_SESSION['error'] = "Please fill in all required fields";
-        header("Location: checkout.php");
-        exit();
-    }
-
-    // Start transaction
-    $mysqli->begin_transaction();
-
-    try {
-        // Get cart items
-        $stmt = $mysqli->prepare("SELECT c.*, p.price, p.stock 
-                                 FROM cart c 
-                                 JOIN products p ON c.product_id = p.product_id 
-                                 WHERE c.account_id = ?");
-        $stmt->bind_param("i", $account_id);
-        $stmt->execute();
-        $cart_items = $stmt->get_result();
-        $stmt->close();
-
-        if ($cart_items->num_rows === 0) {
-            throw new Exception("Your cart is empty");
-        }
-
-        // Calculate total
-        $total = 0;
-        while ($item = $cart_items->fetch_assoc()) {
-            if ($item['quantity'] > $item['stock']) {
-                throw new Exception("Not enough stock for " . $item['name']);
-            }
-            $total += $item['price'] * $item['quantity'];
-        }
-
-        // Create order
-        $stmt = $mysqli->prepare("INSERT INTO orders (account_id, total_amount, shipping_address, phone, status) 
-                                 VALUES (?, ?, ?, ?, 'Pending')");
-        $stmt->bind_param("idss", $account_id, $total, $shipping_address, $phone);
-        $stmt->execute();
-        $order_id = $mysqli->insert_id;
-        $stmt->close();
-
-        // Add order items and update stock
-        $cart_items->data_seek(0);
-        while ($item = $cart_items->fetch_assoc()) {
-            // Add order item
-            $stmt = $mysqli->prepare("INSERT INTO order_items (order_id, product_id, quantity, price) 
-                                     VALUES (?, ?, ?, ?)");
-            $stmt->bind_param("iiid", $order_id, $item['product_id'], $item['quantity'], $item['price']);
-            $stmt->execute();
-            $stmt->close();
-
-            // Update stock
-            $new_stock = $item['stock'] - $item['quantity'];
-            $stmt = $mysqli->prepare("UPDATE products SET stock = ? WHERE product_id = ?");
-            $stmt->bind_param("ii", $new_stock, $item['product_id']);
-            $stmt->execute();
-            $stmt->close();
-        }
-
-        // Clear cart
-        $stmt = $mysqli->prepare("DELETE FROM cart WHERE account_id = ?");
-        $stmt->bind_param("i", $account_id);
-        $stmt->execute();
-        $stmt->close();
-
-        // Commit transaction
-        $mysqli->commit();
-        $_SESSION['success'] = "Order placed successfully! Order ID: " . $order_id;
-        header("Location: order_confirmation.php?id=" . $order_id);
-        exit();
-
-    } catch (Exception $e) {
-        // Rollback transaction on error
-        $mysqli->rollback();
-        $_SESSION['error'] = $e->getMessage();
-        header("Location: checkout.php");
-        exit();
-    }
-}
-
-// Fetch cart items for display
-$query = "SELECT c.cart_id, c.quantity, p.*, cat.name as category_name 
+// Get cart items
+$query = "SELECT c.*, p.name, p.price, p.stock, p.image_url 
           FROM cart c 
           JOIN products p ON c.product_id = p.product_id 
-          JOIN categories cat ON p.category_id = cat.category_id 
           WHERE c.account_id = ?";
 $stmt = $mysqli->prepare($query);
 $stmt->bind_param("i", $account_id);
 $stmt->execute();
-$result = $stmt->get_result();
+$cart_items = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 
 // Calculate total
 $total = 0;
+foreach ($cart_items as $item) {
+    $total += $item['price'] * $item['quantity'];
+}
+
+// Handle order submission
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
+    $shipping_address = trim($_POST['shipping_address']);
+    $shipping_city = trim($_POST['shipping_city']);
+    $shipping_state = trim($_POST['shipping_state']);
+    $phone = trim($_POST['phone']);
+    $payment_method = $_POST['payment_method'];
+    
+    // Validate input
+    if (empty($shipping_address) || empty($shipping_city) || empty($shipping_state) || empty($phone)) {
+        $_SESSION['error'] = "Please fill in all required fields";
+    } else {
+        // Start transaction
+        $mysqli->begin_transaction();
+        
+        try {
+            // Create order
+            $stmt = $mysqli->prepare("
+                INSERT INTO orders (account_id, total_amount, shipping_address, shipping_city, shipping_state, phone, payment_method, status) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, 'Pending')
+            ");
+            $stmt->bind_param("idsssss", $account_id, $total, $shipping_address, $shipping_city, $shipping_state, $phone, $payment_method);
+            $stmt->execute();
+            $order_id = $mysqli->insert_id;
+            
+            // Add order items
+            $stmt = $mysqli->prepare("
+                INSERT INTO order_items (order_id, product_id, quantity, price) 
+                VALUES (?, ?, ?, ?)
+            ");
+            
+            foreach ($cart_items as $item) {
+                // Check stock
+                if ($item['stock'] < $item['quantity']) {
+                    throw new Exception("Insufficient stock for " . $item['name']);
+                }
+                
+                // Add to order items
+                $stmt->bind_param("iiid", $order_id, $item['product_id'], $item['quantity'], $item['price']);
+                $stmt->execute();
+                
+                // Update stock
+                $new_stock = $item['stock'] - $item['quantity'];
+                $update_stock = $mysqli->prepare("UPDATE products SET stock = ? WHERE product_id = ?");
+                $update_stock->bind_param("ii", $new_stock, $item['product_id']);
+                $update_stock->execute();
+            }
+            
+            // Clear cart
+            $stmt = $mysqli->prepare("DELETE FROM cart WHERE account_id = ?");
+            $stmt->bind_param("i", $account_id);
+            $stmt->execute();
+            
+            $mysqli->commit();
+            
+            // Send order confirmation email
+            $to = $_SESSION['email'];
+            $subject = "Order Confirmation - Order #" . $order_id;
+            $message = "Dear " . $_SESSION['name'] . ",\n\n";
+            $message .= "Thank you for your order! Your order number is: " . $order_id . "\n\n";
+            $message .= "Order Details:\n";
+            foreach ($cart_items as $item) {
+                $message .= "- " . $item['name'] . " x " . $item['quantity'] . " = ₱" . ($item['price'] * $item['quantity']) . "\n";
+            }
+            $message .= "\nTotal: ₱" . $total . "\n\n";
+            $message .= "Shipping Address:\n";
+            $message .= $shipping_address . "\n";
+            $message .= $shipping_city . ", " . $shipping_state . "\n\n";
+            $message .= "We will notify you when your order ships.\n\n";
+            $message .= "Thank you for shopping with us!\n";
+            $message .= "Rhine Lab Team";
+            
+            mail($to, $subject, $message);
+            
+            $_SESSION['success'] = "Order placed successfully! Order #" . $order_id;
+            header("Location: order_confirmation.php?id=" . $order_id);
+            exit();
+            
+        } catch (Exception $e) {
+            $mysqli->rollback();
+            $_SESSION['error'] = $e->getMessage();
+        }
+    }
+}
+
+// Get user profile
+$stmt = $mysqli->prepare("SELECT * FROM user_profiles WHERE account_id = ?");
+$stmt->bind_param("i", $account_id);
+$stmt->execute();
+$profile = $stmt->get_result()->fetch_assoc();
 ?>
 
 <!DOCTYPE html>
@@ -116,178 +124,136 @@ $total = 0;
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="img/Followers.png">
     <title>Checkout - Rhine Lab</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
-    <link rel="stylesheet" href="img&css/style.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        .container {
+        .checkout-container {
             max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-        .checkout-grid {
-            display: grid;
-            grid-template-columns: 2fr 1fr;
-            gap: 20px;
-        }
-        .checkout-form {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .form-group {
-            margin-bottom: 15px;
-        }
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-        }
-        .form-group input {
-            width: 100%;
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
+            margin: 2rem auto;
+            padding: 0 1rem;
         }
         .order-summary {
-            background: #f5f5f5;
-            padding: 20px;
+            background: white;
             border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
-        .order-items {
-            margin-bottom: 20px;
-        }
-        .order-item {
+        .cart-item {
             display: flex;
-            justify-content: space-between;
-            margin-bottom: 10px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #ddd;
+            align-items: center;
+            padding: 1rem 0;
+            border-bottom: 1px solid #eee;
         }
-        .btn {
-            padding: 12px 24px;
-            border: none;
+        .cart-item img {
+            width: 80px;
+            height: 80px;
+            object-fit: cover;
             border-radius: 4px;
-            cursor: pointer;
-            text-decoration: none;
-            display: inline-block;
-            width: 100%;
-            text-align: center;
-            font-size: 1.1em;
-        }
-        .btn-primary {
-            background-color: #4CAF50;
-            color: white;
-        }
-        .btn-primary:hover {
-            background-color: #45a049;
-        }
-        .nav-links {
-            display: flex;
-            gap: 20px;
-        }
-        .nav-links a {
-            text-decoration: none;
-            color: #333;
-            font-weight: bold;
-        }
-        .nav-links a:hover {
-            color: #4CAF50;
-        }
-        .expiry-warning {
-            color: #f44336;
-            font-size: 0.9em;
+            margin-right: 1rem;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>Checkout</h1>
-            <div class="nav-links">
-                <a href="cart.php"><i class="fas fa-arrow-left"></i> Back to Cart</a>
-                <a href="profile.php"><i class="fas fa-user"></i> Profile</a>
-                <a href="logout.php"><i class="fas fa-sign-out-alt"></i> Logout</a>
-            </div>
-        </div>
+    <?php include 'navbar.php'; ?>
 
-        <?php if ($result->num_rows > 0): ?>
-            <div class="checkout-grid">
-                <div class="checkout-form">
-                    <h2>Shipping Information</h2>
-                    <form method="POST">
-                        <div class="form-group">
-                            <label for="shipping_address">Shipping Address *</label>
-                            <input type="text" id="shipping_address" name="shipping_address" required>
+    <div class="checkout-container">
+        <h1 class="h2 mb-4">Checkout</h1>
+
+        <?php if (isset($_SESSION['error'])): ?>
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <?php echo $_SESSION['error']; ?>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            <?php unset($_SESSION['error']); ?>
+        <?php endif; ?>
+
+        <div class="row">
+            <!-- Order Form -->
+            <div class="col-md-8">
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <h5 class="card-title mb-4">Shipping Information</h5>
+                        <form method="POST">
+                            <div class="row g-3">
+                                <div class="col-12">
+                                    <label class="form-label">Shipping Address</label>
+                                    <input type="text" name="shipping_address" class="form-control" 
+                                           value="<?php echo htmlspecialchars($profile['address'] ?? ''); ?>" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">City</label>
+                                    <input type="text" name="shipping_city" class="form-control" 
+                                           value="<?php echo htmlspecialchars($profile['city'] ?? ''); ?>" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">State/Province</label>
+                                    <input type="text" name="shipping_state" class="form-control" 
+                                           value="<?php echo htmlspecialchars($profile['state'] ?? ''); ?>" required>
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label">Phone Number</label>
+                                    <input type="tel" name="phone" class="form-control" 
+                                           value="<?php echo htmlspecialchars($profile['phone'] ?? ''); ?>" required>
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label">Payment Method</label>
+                                    <select name="payment_method" class="form-select" required>
+                                        <option value="Cash on Delivery">Cash on Delivery</option>
+                                        <option value="Credit Card">Credit Card</option>
+                                        <option value="GCash">GCash</option>
+                                    </select>
+                                </div>
+                            </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Order Summary -->
+            <div class="col-md-4">
+                <div class="order-summary">
+                    <h5 class="mb-4">Order Summary</h5>
+                    <?php foreach ($cart_items as $item): ?>
+                        <div class="cart-item">
+                            <img src="<?php echo htmlspecialchars($item['image_url']); ?>" 
+                                 alt="<?php echo htmlspecialchars($item['name']); ?>">
+                            <div class="flex-grow-1">
+                                <h6 class="mb-1"><?php echo htmlspecialchars($item['name']); ?></h6>
+                                <p class="text-muted mb-0">
+                                    <?php echo $item['quantity']; ?> x ₱<?php echo number_format($item['price'], 2); ?>
+                                </p>
+                            </div>
+                            <div class="text-end">
+                                <strong>₱<?php echo number_format($item['price'] * $item['quantity'], 2); ?></strong>
+                            </div>
                         </div>
-                        <div class="form-group">
-                            <label for="phone">Phone Number *</label>
-                            <input type="tel" id="phone" name="phone" required>
+                    <?php endforeach; ?>
+
+                    <div class="mt-4">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Subtotal</span>
+                            <strong>₱<?php echo number_format($total, 2); ?></strong>
                         </div>
-                        <button type="submit" name="place_order" class="btn btn-primary">Place Order</button>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Shipping</span>
+                            <strong>Free</strong>
+                        </div>
+                        <hr>
+                        <div class="d-flex justify-content-between mb-4">
+                            <span>Total</span>
+                            <strong class="h5 mb-0">₱<?php echo number_format($total, 2); ?></strong>
+                        </div>
+                        <button type="submit" name="place_order" class="btn btn-primary w-100">
+                            Place Order
+                        </button>
+                    </div>
                     </form>
                 </div>
-
-                <div class="order-summary">
-                    <h2>Order Summary</h2>
-                    <div class="order-items">
-                        <?php while ($item = $result->fetch_assoc()): 
-                            $subtotal = $item['price'] * $item['quantity'];
-                            $total += $subtotal;
-                            
-                            $expiry_date = new DateTime($item['expiry_date']);
-                            $today = new DateTime();
-                            $days_until_expiry = $today->diff($expiry_date)->days;
-                        ?>
-                            <div class="order-item">
-                                <div>
-                                    <strong><?php echo htmlspecialchars($item['name']); ?></strong>
-                                    <div>Quantity: <?php echo $item['quantity']; ?></div>
-                                    <?php if ($days_until_expiry <= 30): ?>
-                                        <div class="expiry-warning">
-                                            <i class="fas fa-exclamation-triangle"></i> 
-                                            Expires in <?php echo $days_until_expiry; ?> days
-                                        </div>
-                                    <?php endif; ?>
-                                </div>
-                                <div>$<?php echo number_format($subtotal, 2); ?></div>
-                            </div>
-                        <?php endwhile; ?>
-                    </div>
-                    <div class="order-total">
-                        <h3>Total: $<?php echo number_format($total, 2); ?></h3>
-                    </div>
-                </div>
             </div>
-        <?php else: ?>
-            <div class="empty-cart">
-                <i class="fas fa-shopping-cart fa-3x" style="color: #ddd; margin-bottom: 20px;"></i>
-                <h2>Your cart is empty</h2>
-                <p>Add some products to your cart to continue shopping.</p>
-                <a href="products.php" class="btn btn-primary">Browse Products</a>
-            </div>
-        <?php endif; ?>
+        </div>
     </div>
 
-    <?php if (isset($_SESSION['success'])): ?>
-        <script>
-            alert("<?php echo $_SESSION['success']; ?>");
-        </script>
-        <?php unset($_SESSION['success']); ?>
-    <?php endif; ?>
-
-    <?php if (isset($_SESSION['error'])): ?>
-        <script>
-            alert("<?php echo $_SESSION['error']; ?>");
-        </script>
-        <?php unset($_SESSION['error']); ?>
-    <?php endif; ?>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html> 

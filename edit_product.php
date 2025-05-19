@@ -52,33 +52,157 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Handle image upload
     $image_url = $product['image_url']; // Keep existing image by default
     if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
-        $allowed_types = ['image/jpeg', 'image/png', 'image/gif'];
+        $allowed_types = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
         $max_size = 5 * 1024 * 1024; // 5MB
+        $min_dimensions = [200, 200]; // Minimum width and height
+        $max_dimensions = [2000, 2000]; // Maximum width and height
+
+        // Debug information
+        error_log("File upload attempt - Type: " . $_FILES['image']['type'] . ", Size: " . $_FILES['image']['size']);
 
         if (!in_array($_FILES['image']['type'], $allowed_types)) {
-            $errors[] = "Invalid file type. Only JPG, PNG and GIF are allowed.";
+            $errors[] = "Invalid file type. Only JPG, PNG, GIF and WebP are allowed. Received: " . $_FILES['image']['type'];
         } elseif ($_FILES['image']['size'] > $max_size) {
-            $errors[] = "File size too large. Maximum size is 5MB.";
+            $errors[] = "File size too large. Maximum size is 5MB. Received: " . ($_FILES['image']['size'] / 1024 / 1024) . "MB";
         } else {
-            $upload_dir = 'uploads/';
-            if (!file_exists($upload_dir)) {
-                mkdir($upload_dir, 0777, true);
-            }
-
-            $file_extension = pathinfo($_FILES['image']['name'], PATHINFO_EXTENSION);
-            $file_name = uniqid() . '.' . $file_extension;
-            $target_path = $upload_dir . $file_name;
-
-            if (move_uploaded_file($_FILES['image']['tmp_name'], $target_path)) {
-                // Delete old image if exists
-                if (!empty($product['image_url']) && file_exists($product['image_url'])) {
-                    unlink($product['image_url']);
-                }
-                $image_url = $target_path;
+            // Get image dimensions
+            $image_info = getimagesize($_FILES['image']['tmp_name']);
+            if ($image_info === false) {
+                $errors[] = "Invalid image file.";
             } else {
-                $errors[] = "Failed to upload image.";
+                list($width, $height) = $image_info;
+                if ($width < $min_dimensions[0] || $height < $min_dimensions[1]) {
+                    $errors[] = "Image dimensions too small. Minimum size is 200x200 pixels. Received: {$width}x{$height}";
+                } elseif ($width > $max_dimensions[0] || $height > $max_dimensions[1]) {
+                    $errors[] = "Image dimensions too large. Maximum size is 2000x2000 pixels. Received: {$width}x{$height}";
+                } else {
+                    $upload_dir = 'uploads/products/';
+                    $thumbnail_dir = $upload_dir . 'thumbnails/';
+                    
+                    // Create directories if they don't exist
+                    if (!file_exists($upload_dir)) {
+                        if (!mkdir($upload_dir, 0777, true)) {
+                            $errors[] = "Failed to create upload directory. Please check permissions.";
+                            error_log("Failed to create directory: " . $upload_dir);
+                        }
+                    }
+                    
+                    if (!file_exists($thumbnail_dir)) {
+                        if (!mkdir($thumbnail_dir, 0777, true)) {
+                            $errors[] = "Failed to create thumbnail directory. Please check permissions.";
+                            error_log("Failed to create directory: " . $thumbnail_dir);
+                        }
+                    }
+
+                    // Check if directories are writable
+                    if (!is_writable($upload_dir)) {
+                        $errors[] = "Upload directory is not writable. Please check permissions.";
+                        error_log("Directory not writable: " . $upload_dir);
+                    }
+                    
+                    if (!is_writable($thumbnail_dir)) {
+                        $errors[] = "Thumbnail directory is not writable. Please check permissions.";
+                        error_log("Directory not writable: " . $thumbnail_dir);
+                    }
+
+                    if (empty($errors)) {
+                        $file_extension = strtolower(pathinfo($_FILES['image']['name'], PATHINFO_EXTENSION));
+                        $file_name = uniqid('product_') . '.' . $file_extension;
+                        $target_path = $upload_dir . $file_name;
+
+                        // Create image resource based on file type
+                        switch ($_FILES['image']['type']) {
+                            case 'image/jpeg':
+                                $source_image = imagecreatefromjpeg($_FILES['image']['tmp_name']);
+                                break;
+                            case 'image/png':
+                                $source_image = imagecreatefrompng($_FILES['image']['tmp_name']);
+                                break;
+                            case 'image/gif':
+                                $source_image = imagecreatefromgif($_FILES['image']['tmp_name']);
+                                break;
+                            case 'image/webp':
+                                $source_image = imagecreatefromwebp($_FILES['image']['tmp_name']);
+                                break;
+                        }
+
+                        if ($source_image) {
+                            // Create thumbnail
+                            $thumbnail_width = 300;
+                            $thumbnail_height = 300;
+                            $thumbnail = imagecreatetruecolor($thumbnail_width, $thumbnail_height);
+
+                            // Preserve transparency for PNG and GIF
+                            if (in_array($_FILES['image']['type'], ['image/png', 'image/gif'])) {
+                                imagealphablending($thumbnail, false);
+                                imagesavealpha($thumbnail, true);
+                                $transparent = imagecolorallocatealpha($thumbnail, 255, 255, 255, 127);
+                                imagefilledrectangle($thumbnail, 0, 0, $thumbnail_width, $thumbnail_height, $transparent);
+                            }
+
+                            // Resize image
+                            imagecopyresampled(
+                                $thumbnail, $source_image,
+                                0, 0, 0, 0,
+                                $thumbnail_width, $thumbnail_height,
+                                $width, $height
+                            );
+
+                            // Save thumbnail
+                            $thumbnail_path = $thumbnail_dir . $file_name;
+                            
+                            $thumbnail_saved = false;
+                            switch ($_FILES['image']['type']) {
+                                case 'image/jpeg':
+                                    $thumbnail_saved = imagejpeg($thumbnail, $thumbnail_path, 90);
+                                    break;
+                                case 'image/png':
+                                    $thumbnail_saved = imagepng($thumbnail, $thumbnail_path, 9);
+                                    break;
+                                case 'image/gif':
+                                    $thumbnail_saved = imagegif($thumbnail, $thumbnail_path);
+                                    break;
+                                case 'image/webp':
+                                    $thumbnail_saved = imagewebp($thumbnail, $thumbnail_path, 90);
+                                    break;
+                            }
+
+                            if (!$thumbnail_saved) {
+                                error_log("Failed to save thumbnail: " . $thumbnail_path);
+                                $errors[] = "Failed to save thumbnail.";
+                            }
+
+                            // Save original image
+                            if (move_uploaded_file($_FILES['image']['tmp_name'], $target_path)) {
+                                // Delete old image and thumbnail if they exist
+                                if (!empty($product['image_url']) && file_exists($product['image_url'])) {
+                                    unlink($product['image_url']);
+                                    $old_thumbnail = str_replace('uploads/products/', 'uploads/products/thumbnails/', $product['image_url']);
+                                    if (file_exists($old_thumbnail)) {
+                                        unlink($old_thumbnail);
+                                    }
+                                }
+                                $image_url = $target_path;
+                            } else {
+                                error_log("Failed to move uploaded file to: " . $target_path);
+                                $errors[] = "Failed to upload image. Error: " . error_get_last()['message'];
+                            }
+
+                            // Clean up
+                            imagedestroy($source_image);
+                            imagedestroy($thumbnail);
+                        } else {
+                            error_log("Failed to create image resource from uploaded file");
+                            $errors[] = "Failed to process image.";
+                        }
+                    }
+                }
             }
         }
+    } else if (isset($_FILES['image']) && $_FILES['image']['error'] !== UPLOAD_ERR_NO_FILE) {
+        $error_message = getUploadErrorMessage($_FILES['image']['error']);
+        error_log("File upload error: " . $error_message);
+        $errors[] = "Error uploading image: " . $error_message;
     }
 
     if (empty($errors)) {
@@ -94,6 +218,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $errors[] = "Failed to update product: " . $mysqli->error;
         }
         $stmt->close();
+    }
+}
+
+function getUploadErrorMessage($error_code) {
+    switch ($error_code) {
+        case UPLOAD_ERR_INI_SIZE:
+            return "The uploaded file exceeds the upload_max_filesize directive in php.ini";
+        case UPLOAD_ERR_FORM_SIZE:
+            return "The uploaded file exceeds the MAX_FILE_SIZE directive in the HTML form";
+        case UPLOAD_ERR_PARTIAL:
+            return "The uploaded file was only partially uploaded";
+        case UPLOAD_ERR_NO_TMP_DIR:
+            return "Missing a temporary folder";
+        case UPLOAD_ERR_CANT_WRITE:
+            return "Failed to write file to disk";
+        case UPLOAD_ERR_EXTENSION:
+            return "A PHP extension stopped the file upload";
+        default:
+            return "Unknown upload error";
     }
 }
 ?>
@@ -228,13 +371,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="form-group">
                 <label for="image">Product Image:</label>
                 <?php if (!empty($product['image_url'])): ?>
-                    <div>
+                    <div class="mb-2">
                         <p>Current Image:</p>
-                        <img src="<?php echo htmlspecialchars($product['image_url']); ?>" alt="Current product image" class="current-image">
+                        <img src="<?php echo htmlspecialchars($product['image_url']); ?>" 
+                             alt="Current product image" 
+                             class="current-image"
+                             style="max-width: 200px; max-height: 200px; object-fit: contain;">
                     </div>
                 <?php endif; ?>
-                <input type="file" id="image" name="image" accept="image/*">
-                <small>Leave empty to keep current image</small>
+                <input type="file" id="image" name="image" accept="image/*" onchange="previewImage(this);">
+                <small class="form-text text-muted">
+                    Allowed formats: JPG, PNG, GIF, WebP. Max size: 5MB. Min dimensions: 200x200px. Max dimensions: 2000x2000px.
+                    Leave empty to keep current image.
+                </small>
+                <div id="imagePreview" class="mt-2" style="display: none;">
+                    <p>New Image Preview:</p>
+                    <img id="preview" src="#" alt="Preview" style="max-width: 200px; max-height: 200px; object-fit: contain;">
+                </div>
             </div>
 
             <div class="form-group">
@@ -243,5 +396,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
         </form>
     </div>
+
+    <script>
+    function previewImage(input) {
+        const preview = document.getElementById('preview');
+        const previewDiv = document.getElementById('imagePreview');
+        
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                preview.src = e.target.result;
+                previewDiv.style.display = 'block';
+            }
+            
+            reader.readAsDataURL(input.files[0]);
+        } else {
+            preview.src = '#';
+            previewDiv.style.display = 'none';
+        }
+    }
+    </script>
 </body>
 </html> 

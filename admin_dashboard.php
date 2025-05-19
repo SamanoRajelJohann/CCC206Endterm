@@ -28,32 +28,39 @@ $stmt = $mysqli->prepare("SELECT COUNT(*) as total FROM accounts WHERE role = 'U
 $stmt->execute();
 $total_users = $stmt->get_result()->fetch_assoc()['total'];
 
-// Get recent orders
-$stmt = $mysqli->prepare("
-    SELECT o.*, a.username, 
+// Fetch recent orders
+$query = "
+    SELECT o.*, a.username, a.email,
            COUNT(oi.order_item_id) as total_items,
            SUM(oi.quantity) as total_quantity
-    FROM orders o 
+    FROM orders o
     JOIN accounts a ON o.account_id = a.account_id
-    JOIN order_items oi ON o.order_id = oi.order_id
-    GROUP BY o.order_id 
-    ORDER BY o.order_date DESC 
-    LIMIT 5
-");
+    LEFT JOIN order_items oi ON o.order_id = oi.order_id
+    GROUP BY o.order_id
+    ORDER BY o.created_at DESC
+    LIMIT 5";
+$stmt = $mysqli->prepare($query);
 $stmt->execute();
 $recent_orders = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+$stmt->close();
 
-// Get low stock products
-$stmt = $mysqli->prepare("
-    SELECT p.*, c.name as category_name 
-    FROM products p 
-    JOIN categories c ON p.category_id = c.category_id 
-    WHERE p.stock <= 10 
-    ORDER BY p.stock ASC 
-    LIMIT 5
-");
+// Fetch low stock products
+$query = "SELECT * FROM products WHERE stock < 10 ORDER BY stock ASC LIMIT 5";
+$stmt = $mysqli->prepare($query);
 $stmt->execute();
 $low_stock_products = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+$stmt->close();
+
+// Fetch total statistics
+$query = "SELECT 
+            COUNT(DISTINCT o.order_id) as total_orders,
+            SUM(o.total_amount) as total_revenue,
+            COUNT(DISTINCT o.account_id) as total_customers
+          FROM orders o";
+$stmt = $mysqli->prepare($query);
+$stmt->execute();
+$stats = $stmt->get_result()->fetch_assoc();
+$stmt->close();
 
 // Get products nearing expiry
 $stmt = $mysqli->prepare("
@@ -73,6 +80,7 @@ $expiring_products = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="img/Followers.png">
     <title>Admin Dashboard - Rhine Lab</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -200,7 +208,7 @@ $expiring_products = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
                                         <div>
                                             <strong>Order #<?php echo $order['order_id']; ?></strong>
                                             <div class="text-muted small">
-                                                <?php echo date('M j, Y g:i A', strtotime($order['order_date'])); ?>
+                                                <?php echo date('M j, Y g:i A', strtotime($order['created_at'])); ?>
                                             </div>
                                         </div>
                                         <span class="status-badge status-<?php echo strtolower($order['status']); ?>">
@@ -291,6 +299,19 @@ $expiring_products = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
                             </a>
                         </div>
                     <?php endif; ?>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-4">
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <h5 class="card-title">Order Management</h5>
+                        <p class="card-text">Manage customer orders and track their status.</p>
+                        <a href="admin_orders.php" class="btn btn-primary me-2">View Orders</a>
+                        <a href="admin_order_status.php" class="btn btn-outline-primary">Manage Status</a>
+                    </div>
                 </div>
             </div>
         </div>

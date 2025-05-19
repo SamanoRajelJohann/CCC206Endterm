@@ -31,6 +31,18 @@ $expiry = new DateTime($product['expiry_date']);
 $today = new DateTime();
 $days_until_expiry = $today->diff($expiry)->days;
 
+// Calculate average rating
+$stmt = $mysqli->prepare("SELECT AVG(rating) as avg_rating FROM product_reviews WHERE product_id = ?");
+$stmt->bind_param("i", $product_id);
+$stmt->execute();
+$avg_rating = round($stmt->get_result()->fetch_assoc()['avg_rating'], 1);
+
+// Get review count
+$stmt = $mysqli->prepare("SELECT COUNT(*) as count FROM product_reviews WHERE product_id = ?");
+$stmt->bind_param("i", $product_id);
+$stmt->execute();
+$review_count = $stmt->get_result()->fetch_assoc()['count'];
+
 // Get related products from the same category
 $stmt = $mysqli->prepare("
     SELECT * FROM products 
@@ -40,6 +52,54 @@ $stmt = $mysqli->prepare("
 $stmt->bind_param("ii", $product['category_id'], $product_id);
 $stmt->execute();
 $related_products = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+
+// Handle add to cart
+if (isset($_POST['add_to_cart'])) {
+    // ... existing add to cart code ...
+}
+
+// Handle add to wishlist
+if (isset($_POST['add_to_wishlist'])) {
+    if (!isset($_SESSION['logged_in'])) {
+        $_SESSION['error'] = "Please login to add items to wishlist";
+        header("Location: index.php");
+        exit();
+    }
+
+    $account_id = $_SESSION['id'];
+    $product_id = intval($_GET['id']);
+
+    // Check if already in wishlist
+    $stmt = $mysqli->prepare("SELECT wishlist_id FROM wishlist WHERE account_id = ? AND product_id = ?");
+    $stmt->bind_param("ii", $account_id, $product_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+
+    if ($result->num_rows > 0) {
+        $_SESSION['error'] = "Item is already in your wishlist";
+    } else {
+        $stmt = $mysqli->prepare("INSERT INTO wishlist (account_id, product_id) VALUES (?, ?)");
+        $stmt->bind_param("ii", $account_id, $product_id);
+        
+        if ($stmt->execute()) {
+            $_SESSION['success'] = "Item added to wishlist";
+        } else {
+            $_SESSION['error'] = "Failed to add item to wishlist";
+        }
+    }
+    
+    header("Location: product_details.php?id=" . $product_id);
+    exit();
+}
+
+// Check if product is in wishlist
+$in_wishlist = false;
+if (isset($_SESSION['logged_in'])) {
+    $stmt = $mysqli->prepare("SELECT wishlist_id FROM wishlist WHERE account_id = ? AND product_id = ?");
+    $stmt->bind_param("ii", $_SESSION['id'], $product_id);
+    $stmt->execute();
+    $in_wishlist = $stmt->get_result()->num_rows > 0;
+}
 ?>
 
 <!DOCTYPE html>
@@ -47,6 +107,7 @@ $related_products = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="img/Followers.png">
     <title><?php echo htmlspecialchars($product['name']); ?> - Rhine Lab</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -135,11 +196,17 @@ $related_products = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
             </div>
             <div class="col-md-6">
                 <div class="product-info">
-                    <h1 class="h2 mb-3"><?php echo htmlspecialchars($product['name']); ?></h1>
-                    
-                    <p class="text-muted mb-3">
-                        Category: <?php echo htmlspecialchars($product['category_name']); ?>
-                    </p>
+                    <h1 class="h2 mb-2"><?php echo htmlspecialchars($product['name']); ?></h1>
+                    <p class="text-muted mb-2"><?php echo htmlspecialchars($product['category_name']); ?></p>
+                    <div class="rating mb-3">
+                        <?php for ($i = 1; $i <= 5; $i++): ?>
+                            <i class="fas fa-star<?php echo $i <= round($avg_rating) ? '' : '-o'; ?>"></i>
+                        <?php endfor; ?>
+                        <span class="ms-2">(<?php echo number_format($avg_rating, 1); ?>)</span>
+                        <a href="product_reviews.php?product_id=<?php echo $product['product_id']; ?>" class="ms-2">
+                            <?php echo $review_count; ?> reviews
+                        </a>
+                    </div>
                     
                     <h2 class="h4 mb-3">₱<?php echo number_format($product['price'], 2); ?></h2>
                     
@@ -173,28 +240,40 @@ $related_products = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
                         <strong>Expiry Date:</strong> <?php echo date('F j, Y', strtotime($product['expiry_date'])); ?>
                     </div>
 
-                    <?php if ($product['stock'] > 0 && isset($_SESSION['logged_in'])): ?>
-                        <form action="add_to_cart.php" method="POST" class="mb-4">
+                    <div class="product-actions mt-4">
+                        <form action="add_to_cart.php" method="POST" class="d-inline">
                             <input type="hidden" name="product_id" value="<?php echo $product['product_id']; ?>">
-                            <div class="row align-items-center">
-                                <div class="col-auto">
-                                    <label for="quantity" class="form-label">Quantity:</label>
-                                    <input type="number" class="form-control quantity-input" 
-                                           id="quantity" name="quantity" 
-                                           value="1" min="1" max="<?php echo $product['stock']; ?>">
-                                </div>
-                                <div class="col">
-                                    <button type="submit" class="btn btn-primary">
-                                        <i class="fas fa-cart-plus"></i> Add to Cart
-                                    </button>
-                                </div>
+                            <div class="input-group mb-3" style="max-width: 200px;">
+                                <button type="button" class="btn btn-outline-secondary" onclick="decrementQuantity()">-</button>
+                                <input type="number" class="form-control text-center" name="quantity" id="quantity" value="1" min="1" max="<?php echo $product['stock']; ?>">
+                                <button type="button" class="btn btn-outline-secondary" onclick="incrementQuantity()">+</button>
                             </div>
+                            <button type="submit" class="btn btn-primary me-2">
+                                <i class="fas fa-shopping-cart"></i> Add to Cart
+                            </button>
                         </form>
-                    <?php elseif (!isset($_SESSION['logged_in'])): ?>
-                        <div class="alert alert-info">
-                            Please <a href="index.php">sign in</a> to add items to your cart.
-                        </div>
-                    <?php endif; ?>
+                        <?php if (isset($_SESSION['logged_in'])): ?>
+                            <?php
+                            // Check if product is in wishlist
+                            $wishlist_query = "SELECT * FROM wishlist WHERE account_id = ? AND product_id = ?";
+                            $wishlist_stmt = $mysqli->prepare($wishlist_query);
+                            $wishlist_stmt->bind_param("ii", $_SESSION['id'], $product['product_id']);
+                            $wishlist_stmt->execute();
+                            $in_wishlist = $wishlist_stmt->get_result()->num_rows > 0;
+                            ?>
+                            <form action="wishlist.php" method="POST" class="d-inline">
+                                <input type="hidden" name="product_id" value="<?php echo $product['product_id']; ?>">
+                                <input type="hidden" name="action" value="<?php echo $in_wishlist ? 'remove' : 'add'; ?>">
+                                <button type="submit" class="btn <?php echo $in_wishlist ? 'btn-danger' : 'btn-outline-danger'; ?>">
+                                    <i class="fas fa-heart"></i> <?php echo $in_wishlist ? 'Remove from Wishlist' : 'Add to Wishlist'; ?>
+                                </button>
+                            </form>
+                        <?php else: ?>
+                            <a href="login.php" class="btn btn-outline-danger">
+                                <i class="fas fa-heart"></i> Add to Wishlist
+                            </a>
+                        <?php endif; ?>
+                    </div>
                 </div>
             </div>
         </div>

@@ -62,4 +62,3 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['product_id'])) {
 
 header("Location: products.php");
 exit();
-?> 

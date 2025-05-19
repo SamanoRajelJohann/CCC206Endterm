@@ -44,13 +44,16 @@ if (isset($_POST['update_category'])) {
 
 // Handle category creation
 if (isset($_POST['create_category'])) {
-    $name = $_POST['name'];
+    $name = trim($_POST['name']);
+    $description = trim($_POST['description']);
     
-    $stmt = $mysqli->prepare("INSERT INTO categories (name) VALUES (?)");
-    $stmt->bind_param("s", $name);
-    $stmt->execute();
-    header("Location: admin_categories.php?message=Category created successfully");
-    exit();
+    if (!empty($name)) {
+        $stmt = $mysqli->prepare("INSERT INTO categories (name, description) VALUES (?, ?)");
+        $stmt->bind_param("ss", $name, $description);
+        $stmt->execute();
+        header("Location: admin_categories.php?message=Category created successfully");
+        exit();
+    }
 }
 
 // Get categories with product counts
@@ -158,6 +161,10 @@ $categories = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
                                         <label class="form-label">Name</label>
                                         <input type="text" name="name" class="form-control" value="<?php echo htmlspecialchars($category['name']); ?>" required>
                                     </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Description</label>
+                                        <textarea name="description" class="form-control" rows="3"><?php echo htmlspecialchars($category['description']); ?></textarea>
+                                    </div>
                                 </div>
                                 <div class="modal-footer">
                                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -207,6 +214,10 @@ $categories = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
                         <div class="mb-3">
                             <label class="form-label">Name</label>
                             <input type="text" name="name" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Description</label>
+                            <textarea name="description" class="form-control" rows="3"></textarea>
                         </div>
                     </div>
                     <div class="modal-footer">

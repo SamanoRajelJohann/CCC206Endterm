@@ -6,57 +6,48 @@ session_start();
 require_once("db.php");
 
 // Check if user is logged in
-if (!isset($_SESSION['logged_in']) || !$_SESSION['logged_in']) {
+if (!isset($_SESSION['logged_in'])) {
+    $_SESSION['error'] = "Please login to view order details";
     header("Location: index.php");
     exit();
 }
 
 // Check if order ID is provided
 if (!isset($_GET['id'])) {
-    header("Location: profile.php");
+    header("Location: orders.php");
     exit();
 }
 
-$order_id = $_GET['id'];
+$order_id = intval($_GET['id']);
+$account_id = $_SESSION['id'];
 
 // Fetch order details
-$stmt = $mysqli->prepare("
-    SELECT o.*, 
-           COUNT(oi.order_item_id) as total_items,
-           SUM(oi.quantity) as total_quantity
-    FROM orders o
-    LEFT JOIN order_items oi ON o.order_id = oi.order_id
-    WHERE o.order_id = ? AND o.account_id = ?
-    GROUP BY o.order_id
-");
-$stmt->bind_param("ii", $order_id, $_SESSION['id']);
+$query = "SELECT o.*, 
+          COUNT(oi.order_item_id) as total_items,
+          SUM(oi.quantity * oi.price) as total_amount
+          FROM orders o
+          JOIN order_items oi ON o.order_id = oi.order_id
+          WHERE o.order_id = ? AND o.account_id = ?
+          GROUP BY o.order_id";
+$stmt = $mysqli->prepare($query);
+$stmt->bind_param("ii", $order_id, $account_id);
 $stmt->execute();
 $order = $stmt->get_result()->fetch_assoc();
 
 if (!$order) {
-    header("Location: profile.php");
+    header("Location: orders.php");
     exit();
 }
 
 // Fetch order items
-$stmt = $mysqli->prepare("
-    SELECT oi.*, p.name, p.price, p.image_url, p.expiry_date
-    FROM order_items oi
-    JOIN products p ON oi.product_id = p.product_id
-    WHERE oi.order_id = ?
-");
+$query = "SELECT oi.*, p.name as product_name, p.image_url
+          FROM order_items oi
+          JOIN products p ON oi.product_id = p.product_id
+          WHERE oi.order_id = ?";
+$stmt = $mysqli->prepare($query);
 $stmt->bind_param("i", $order_id);
 $stmt->execute();
 $order_items = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
-
-// Calculate days until expiry for each item
-foreach ($order_items as &$item) {
-    if ($item['expiry_date']) {
-        $expiry = new DateTime($item['expiry_date']);
-        $today = new DateTime();
-        $item['days_until_expiry'] = $today->diff($expiry)->days;
-    }
-}
 ?>
 
 <!DOCTYPE html>
@@ -64,7 +55,8 @@ foreach ($order_items as &$item) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Order Details - Rhineland Lab</title>
+    <link rel="icon" type="image/png" href="img/Followers.png">
+    <title>Order #<?php echo $order_id; ?> - Rhine Lab</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
@@ -73,52 +65,18 @@ foreach ($order_items as &$item) {
             margin: 2rem auto;
             padding: 0 1rem;
         }
-        .order-header {
-            background: #f8f9fa;
-            padding: 1.5rem;
-            border-radius: 8px;
-            margin-bottom: 2rem;
-        }
-        .order-items {
+        .order-card {
             background: white;
             border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            padding: 1.5rem;
         }
-        .item-card {
-            display: flex;
-            align-items: center;
-            padding: 1rem;
-            border-bottom: 1px solid #eee;
-        }
-        .item-card:last-child {
-            border-bottom: none;
-        }
-        .item-image {
-            width: 80px;
-            height: 80px;
-            object-fit: cover;
-            border-radius: 4px;
-            margin-right: 1rem;
-        }
-        .item-details {
-            flex-grow: 1;
-        }
-        .expiry-warning {
-            color: #dc3545;
-            font-size: 0.9rem;
-            margin-top: 0.5rem;
-        }
-        .order-summary {
-            background: #f8f9fa;
-            padding: 1.5rem;
-            border-radius: 8px;
-            margin-top: 2rem;
-        }
-        .status-badge {
+        .order-status {
             padding: 0.5rem 1rem;
             border-radius: 20px;
             font-weight: 500;
+            display: inline-block;
         }
         .status-pending {
             background: #fff3cd;
@@ -128,93 +86,128 @@ foreach ($order_items as &$item) {
             background: #cce5ff;
             color: #004085;
         }
-        .status-completed {
+        .status-shipped {
             background: #d4edda;
             color: #155724;
+        }
+        .status-delivered {
+            background: #d1e7dd;
+            color: #0f5132;
         }
         .status-cancelled {
             background: #f8d7da;
             color: #721c24;
         }
+        .product-image {
+            width: 80px;
+            height: 80px;
+            object-fit: cover;
+            border-radius: 4px;
+        }
     </style>
 </head>
 <body>
-    <div class="order-details">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h1 class="h3">Order Details</h1>
-            <a href="profile.php" class="btn btn-outline-primary">
-                <i class="fas fa-arrow-left"></i> Back to Profile
-            </a>
-        </div>
+    <?php include 'navbar.php'; ?>
 
-        <div class="order-header">
-            <div class="row">
+    <div class="order-details">
+        <nav aria-label="breadcrumb" class="mb-4">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="orders.php">My Orders</a></li>
+                <li class="breadcrumb-item active">Order #<?php echo $order_id; ?></li>
+            </ol>
+        </nav>
+
+        <div class="order-card">
+            <div class="row mb-4">
                 <div class="col-md-6">
-                    <h2 class="h5 mb-3">Order #<?php echo $order['order_id']; ?></h2>
+                    <h1 class="h3 mb-3">Order #<?php echo $order_id; ?></h1>
                     <p class="mb-1">
                         <strong>Order Date:</strong> 
-                        <?php echo date('F j, Y g:i A', strtotime($order['order_date'])); ?>
+                        <?php echo date('F j, Y', strtotime($order['created_at'])); ?>
                     </p>
                     <p class="mb-1">
                         <strong>Status:</strong>
-                        <span class="status-badge status-<?php echo strtolower($order['status']); ?>">
-                            <?php echo $order['status']; ?>
+                        <span class="order-status status-<?php echo strtolower($order['status']); ?>">
+                            <?php echo ucfirst($order['status']); ?>
                         </span>
                     </p>
                 </div>
-                <div class="col-md-6">
+                <div class="col-md-6 text-md-end">
                     <p class="mb-1">
-                        <strong>Shipping Address:</strong><br>
-                        <?php echo htmlspecialchars($order['shipping_address']); ?>
+                        <strong>Total Items:</strong> <?php echo $order['total_items']; ?>
                     </p>
                     <p class="mb-1">
-                        <strong>Phone:</strong> <?php echo htmlspecialchars($order['phone']); ?>
+                        <strong>Total Amount:</strong> ₱<?php echo number_format($order['total_amount'], 2); ?>
                     </p>
                 </div>
             </div>
-        </div>
 
-        <div class="order-items">
-            <h3 class="h5 mb-4">Order Items</h3>
-            <?php foreach ($order_items as $item): ?>
-                <div class="item-card">
-                    <img src="<?php echo htmlspecialchars($item['image_url']); ?>" 
-                         alt="<?php echo htmlspecialchars($item['name']); ?>" 
-                         class="item-image">
-                    <div class="item-details">
-                        <h4 class="h6 mb-1"><?php echo htmlspecialchars($item['name']); ?></h4>
-                        <p class="mb-1">
-                            Quantity: <?php echo $item['quantity']; ?> × 
-                            ₱<?php echo number_format($item['price'], 2); ?>
-                        </p>
-                        <?php if (isset($item['days_until_expiry']) && $item['days_until_expiry'] <= 30): ?>
-                            <div class="expiry-warning">
-                                <i class="fas fa-exclamation-triangle"></i>
-                                Expires in <?php echo $item['days_until_expiry']; ?> days
-                            </div>
-                        <?php endif; ?>
-                    </div>
-                    <div class="text-end">
-                        <strong>₱<?php echo number_format($item['price'] * $item['quantity'], 2); ?></strong>
-                    </div>
-                </div>
-            <?php endforeach; ?>
-        </div>
-
-        <div class="order-summary">
-            <div class="row">
+            <div class="row mb-4">
                 <div class="col-md-6">
-                    <p class="mb-2">
-                        <strong>Total Items:</strong> <?php echo $order['total_items']; ?>
+                    <h5 class="mb-3">Shipping Information</h5>
+                    <p class="mb-1">
+                        <strong>Address:</strong><br>
+                        <?php echo nl2br(htmlspecialchars($order['shipping_address'])); ?>
                     </p>
-                    <p class="mb-2">
-                        <strong>Total Quantity:</strong> <?php echo $order['total_quantity']; ?>
+                    <?php if (isset($order['contact_number']) && !empty($order['contact_number'])): ?>
+                        <p class="mb-1">
+                            <strong>Contact Number:</strong><br>
+                            <?php echo htmlspecialchars($order['contact_number']); ?>
+                        </p>
+                    <?php endif; ?>
+                </div>
+                <div class="col-md-6">
+                    <h5 class="mb-3">Payment Information</h5>
+                    <p class="mb-1">
+                        <strong>Payment Method:</strong><br>
+                        <?php echo htmlspecialchars($order['payment_method']); ?>
                     </p>
+                    <?php if (isset($order['payment_status']) && $order['payment_status']): ?>
+                        <p class="mb-1">
+                            <strong>Payment Status:</strong><br>
+                            <span class="text-success">Paid</span>
+                        </p>
+                    <?php endif; ?>
                 </div>
-                <div class="col-md-6 text-md-end">
-                    <h4 class="h5 mb-3">Order Total</h4>
-                    <p class="h4 mb-0">₱<?php echo number_format($order['total_amount'], 2); ?></p>
-                </div>
+            </div>
+
+            <h5 class="mb-3">Order Items</h5>
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th>Price</th>
+                            <th>Quantity</th>
+                            <th class="text-end">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($order_items as $item): ?>
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <img src="<?php echo htmlspecialchars($item['image_url']); ?>" 
+                                             alt="<?php echo htmlspecialchars($item['product_name']); ?>"
+                                             class="product-image me-3">
+                                        <div>
+                                            <h6 class="mb-0"><?php echo htmlspecialchars($item['product_name']); ?></h6>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>₱<?php echo number_format($item['price'], 2); ?></td>
+                                <td><?php echo $item['quantity']; ?></td>
+                                <td class="text-end">₱<?php echo number_format($item['price'] * $item['quantity'], 2); ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="3" class="text-end"><strong>Total:</strong></td>
+                            <td class="text-end"><strong>₱<?php echo number_format($order['total_amount'], 2); ?></strong></td>
+                        </tr>
+                    </tfoot>
+                </table>
             </div>
         </div>
     </div>

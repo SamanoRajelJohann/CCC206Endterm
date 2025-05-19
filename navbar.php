@@ -4,7 +4,13 @@ $current_page = basename($_SERVER['PHP_SELF']);
 ?>
 <nav class="navbar navbar-expand-lg navbar-light bg-light">
     <div class="container">
-        <a class="navbar-brand" href="index.php">
+        <a class="navbar-brand" href="<?php 
+            if (isset($_SESSION['logged_in'])) {
+                echo $_SESSION['role'] === 'Admin' ? 'admin_dashboard.php' : 'user_dashboard.php';
+            } else {
+                echo 'index.php';
+            }
+        ?>">
             <i class="fas fa-pills"></i> Rhine Lab
         </a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
@@ -13,7 +19,17 @@ $current_page = basename($_SERVER['PHP_SELF']);
         <div class="collapse navbar-collapse" id="navbarNav">
             <ul class="navbar-nav me-auto">
                 <li class="nav-item">
-                    <a class="nav-link <?php echo $current_page === 'index.php' ? 'active' : ''; ?>" href="index.php">
+                    <a class="nav-link <?php 
+                        echo ($current_page === 'index.php' || 
+                             $current_page === 'admin_dashboard.php' || 
+                             $current_page === 'user_dashboard.php') ? 'active' : ''; 
+                    ?>" href="<?php 
+                        if (isset($_SESSION['logged_in'])) {
+                            echo $_SESSION['role'] === 'Admin' ? 'admin_dashboard.php' : 'user_dashboard.php';
+                        } else {
+                            echo 'index.php';
+                        }
+                    ?>">
                         <i class="fas fa-home"></i> Home
                     </a>
                 </li>
@@ -38,6 +54,16 @@ $current_page = basename($_SERVER['PHP_SELF']);
                                 }
                             }
                             ?>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="wishlist.php">
+                            <i class="fas fa-heart"></i> Wishlist
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="orders.php">
+                            <i class="fas fa-box"></i> Orders
                         </a>
                     </li>
                 <?php endif; ?>

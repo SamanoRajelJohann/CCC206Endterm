@@ -28,9 +28,30 @@ if (isset($_POST['update_product'])) {
     $category_id = $_POST['category_id'];
     $manufacturer = $_POST['manufacturer'];
     $expiry_date = $_POST['expiry_date'];
-    
-    $stmt = $mysqli->prepare("UPDATE products SET name = ?, description = ?, price = ?, stock = ?, category_id = ?, manufacturer = ?, expiry_date = ? WHERE product_id = ?");
-    $stmt->bind_param("ssdiissi", $name, $description, $price, $stock, $category_id, $manufacturer, $expiry_date, $product_id);
+
+    // Handle image upload for edit
+    $image_url = null;
+    if (isset($_FILES['image']['name']) && $_FILES['image']['name'] != '') {
+        $image_name = time() . '_' . basename($_FILES['image']['name']);
+        $target_dir = "img/products/";
+        $target_file = $target_dir . $image_name;
+        if (!file_exists($target_dir)) {
+            mkdir($target_dir, 0777, true);
+        }
+        if (move_uploaded_file($_FILES['image']['tmp_name'], $target_file)) {
+            $image_url = $target_file;
+        } else {
+            echo "<div class='alert alert-danger'>Error uploading the image.</div>";
+        }
+    }
+
+    if ($image_url) {
+        $stmt = $mysqli->prepare("UPDATE products SET name = ?, description = ?, price = ?, stock = ?, category_id = ?, manufacturer = ?, expiry_date = ?, image_url = ? WHERE product_id = ?");
+        $stmt->bind_param("ssdiisssi", $name, $description, $price, $stock, $category_id, $manufacturer, $expiry_date, $image_url, $product_id);
+    } else {
+        $stmt = $mysqli->prepare("UPDATE products SET name = ?, description = ?, price = ?, stock = ?, category_id = ?, manufacturer = ?, expiry_date = ? WHERE product_id = ?");
+        $stmt->bind_param("ssdiissi", $name, $description, $price, $stock, $category_id, $manufacturer, $expiry_date, $product_id);
+    }
     $stmt->execute();
     header("Location: admin_products.php?message=Product updated successfully");
     exit();
@@ -46,7 +67,19 @@ if (isset($_POST['create_product'])) {
     $manufacturer = $_POST['manufacturer'];
     $expiry_date = $_POST['expiry_date'];
     $image_url = 'img/products/default.jpg'; // Default image
-    
+    if (isset($_FILES['image']['name']) && $_FILES['image']['name'] != '') {
+        $image_name = time() . '_' . basename($_FILES['image']['name']);
+        $target_dir = "img/products/";
+        $target_file = $target_dir . $image_name;
+        if (!file_exists($target_dir)) {
+            mkdir($target_dir, 0777, true);
+        }
+        if (move_uploaded_file($_FILES['image']['tmp_name'], $target_file)) {
+            $image_url = $target_file;
+        } else {
+            echo "<div class='alert alert-danger'>Error uploading the image.</div>";
+        }
+    }
     $stmt = $mysqli->prepare("INSERT INTO products (name, description, price, stock, category_id, manufacturer, expiry_date, image_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
     $stmt->bind_param("ssdiisss", $name, $description, $price, $stock, $category_id, $manufacturer, $expiry_date, $image_url);
     $stmt->execute();
@@ -281,7 +314,7 @@ $products = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
                                                 <h5 class="modal-title">Edit Product</h5>
                                                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                             </div>
-                                            <form method="POST">
+                                            <form method="POST" enctype="multipart/form-data">
                                                 <div class="modal-body">
                                                     <input type="hidden" name="product_id" value="<?php echo $product['product_id']; ?>">
                                                     <div class="mb-3">
@@ -317,6 +350,18 @@ $products = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
                                                     <div class="mb-3">
                                                         <label class="form-label">Expiry Date</label>
                                                         <input type="date" name="expiry_date" class="form-control" value="<?php echo $product['expiry_date']; ?>" required>
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        <label class="form-label">Product Image</label>
+                                                        <input type="file" name="image" class="form-control" accept="image/*">
+                                                        <small class="form-text text-muted">
+                                                            Leave empty to keep the current image.
+                                                        </small>
+                                                        <?php if (!empty($product['image_url'])): ?>
+                                                            <div class="mt-2">
+                                                                <img src="<?php echo htmlspecialchars($product['image_url']); ?>" alt="Current Image" style="max-width: 100px;">
+                                                            </div>
+                                                        <?php endif; ?>
                                                     </div>
                                                 </div>
                                                 <div class="modal-footer">
@@ -366,7 +411,7 @@ $products = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
                     <h5 class="modal-title">Add New Product</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <form method="POST">
+                <form method="POST" enctype="multipart/form-data">
                     <div class="modal-body">
                         <div class="mb-3">
                             <label class="form-label">Name</label>
@@ -401,6 +446,13 @@ $products = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
                         <div class="mb-3">
                             <label class="form-label">Expiry Date</label>
                             <input type="date" name="expiry_date" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Product Image</label>
+                            <input type="file" name="image" class="form-control" accept="image/*" required>
+                            <small class="form-text text-muted">
+                                Allowed formats: JPG, PNG, GIF, WebP. Max size: 5MB. Min dimensions: 200x200px. Max dimensions: 2000x2000px.
+                            </small>
                         </div>
                     </div>
                     <div class="modal-footer">

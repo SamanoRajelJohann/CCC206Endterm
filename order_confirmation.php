@@ -4,42 +4,43 @@ require_once("db.php");
 
 // Check if user is logged in
 if (!isset($_SESSION['logged_in'])) {
-    $_SESSION['error'] = "Please login to view order details";
     header("Location: index.php");
     exit();
 }
 
 // Check if order ID is provided
 if (!isset($_GET['id'])) {
-    $_SESSION['error'] = "Invalid order ID";
-    header("Location: products.php");
+    header("Location: profile.php");
     exit();
 }
 
-$order_id = intval($_GET['id']);
+$order_id = $_GET['id'];
 $account_id = $_SESSION['id'];
 
-// Fetch order details
-$query = "SELECT o.*, oi.quantity, oi.price, p.name as product_name, p.image_url, cat.name as category_name
-          FROM orders o
-          JOIN order_items oi ON o.order_id = oi.order_id
-          JOIN products p ON oi.product_id = p.product_id
-          JOIN categories cat ON p.category_id = cat.category_id
+// Get order details
+$query = "SELECT o.*, a.username, a.email 
+          FROM orders o 
+          JOIN accounts a ON o.account_id = a.account_id 
           WHERE o.order_id = ? AND o.account_id = ?";
 $stmt = $mysqli->prepare($query);
 $stmt->bind_param("ii", $order_id, $account_id);
 $stmt->execute();
-$result = $stmt->get_result();
+$order = $stmt->get_result()->fetch_assoc();
 
-if ($result->num_rows === 0) {
-    $_SESSION['error'] = "Order not found";
-    header("Location: products.php");
+if (!$order) {
+    header("Location: profile.php");
     exit();
 }
 
-// Get order header info
-$order = $result->fetch_assoc();
-$result->data_seek(0);
+// Get order items
+$query = "SELECT oi.*, p.name, p.image_url 
+          FROM order_items oi 
+          JOIN products p ON oi.product_id = p.product_id 
+          WHERE oi.order_id = ?";
+$stmt = $mysqli->prepare($query);
+$stmt->bind_param("i", $order_id);
+$stmt->execute();
+$order_items = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 ?>
 
 <!DOCTYPE html>
@@ -47,162 +48,113 @@ $result->data_seek(0);
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="img/Followers.png">
     <title>Order Confirmation - Rhine Lab</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
-    <link rel="stylesheet" href="img&css/style.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
+        .confirmation-container {
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 0 1rem;
         }
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-        .confirmation-box {
+        .order-card {
             background: white;
-            padding: 20px;
             border-radius: 8px;
+            padding: 1.5rem;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
-        }
-        .order-details {
-            display: grid;
-            grid-template-columns: 2fr 1fr;
-            gap: 20px;
-        }
-        .order-items {
-            background: #f5f5f5;
-            padding: 20px;
-            border-radius: 8px;
-        }
-        .order-item {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 15px;
-            padding-bottom: 15px;
-            border-bottom: 1px solid #ddd;
-        }
-        .product-image {
-            width: 60px;
-            height: 60px;
-            object-fit: cover;
-            border-radius: 4px;
-            margin-right: 10px;
-        }
-        .btn {
-            padding: 8px 16px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            text-decoration: none;
-            display: inline-block;
-        }
-        .btn-primary {
-            background-color: #4CAF50;
-            color: white;
-        }
-        .btn-primary:hover {
-            background-color: #45a049;
-        }
-        .nav-links {
-            display: flex;
-            gap: 20px;
-        }
-        .nav-links a {
-            text-decoration: none;
-            color: #333;
-            font-weight: bold;
-        }
-        .nav-links a:hover {
-            color: #4CAF50;
+            margin-bottom: 1rem;
         }
         .status-badge {
-            display: inline-block;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 0.9em;
-            font-weight: bold;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-weight: 500;
         }
-        .status-pending {
-            background-color: #ffd700;
-            color: #000;
-        }
-        .expiry-warning {
-            color: #f44336;
-            font-size: 0.9em;
-        }
+        .status-pending { background: #fff3cd; color: #856404; }
+        .status-processing { background: #cce5ff; color: #004085; }
+        .status-shipped { background: #d4edda; color: #155724; }
+        .status-delivered { background: #d1e7dd; color: #0f5132; }
+        .status-cancelled { background: #f8d7da; color: #721c24; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>Order Confirmation</h1>
-            <div class="nav-links">
-                <a href="products.php"><i class="fas fa-shopping-bag"></i> Continue Shopping</a>
-                <a href="profile.php"><i class="fas fa-user"></i> Profile</a>
-                <a href="logout.php"><i class="fas fa-sign-out-alt"></i> Logout</a>
+    <?php include 'navbar.php'; ?>
+
+    <div class="confirmation-container">
+        <div class="text-center mb-4">
+            <i class="fas fa-check-circle text-success" style="font-size: 4rem;"></i>
+            <h1 class="h2 mt-3">Order Confirmed!</h1>
+            <p class="text-muted">Thank you for your purchase</p>
+        </div>
+
+        <div class="order-card">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5 class="mb-3">Order Details</h5>
+                    <p class="mb-1"><strong>Order Number:</strong> #<?php echo $order['order_id']; ?></p>
+                    <p class="mb-1"><strong>Date:</strong> <?php echo date('F j, Y', strtotime($order['order_date'])); ?></p>
+                    <p class="mb-1"><strong>Status:</strong> 
+                        <span class="status-badge status-<?php echo strtolower($order['status']); ?>">
+                            <?php echo $order['status']; ?>
+                        </span>
+                    </p>
+                    <p class="mb-1"><strong>Payment Method:</strong> <?php echo $order['payment_method']; ?></p>
+                </div>
+                <div class="col-md-6">
+                    <h5 class="mb-3">Shipping Information</h5>
+                    <p class="mb-1"><?php echo htmlspecialchars($order['shipping_address']); ?></p>
+                    <p class="mb-1"><?php echo htmlspecialchars($order['shipping_city']); ?>, <?php echo htmlspecialchars($order['shipping_state']); ?></p>
+                    <p class="mb-1">Phone: <?php echo htmlspecialchars($order['phone']); ?></p>
+                </div>
             </div>
         </div>
 
-        <div class="confirmation-box">
-            <h2>Thank you for your order!</h2>
-            <p>Your order has been placed successfully. Here are your order details:</p>
-            
-            <div class="order-info">
-                <p><strong>Order ID:</strong> #<?php echo $order_id; ?></p>
-                <p><strong>Order Date:</strong> <?php echo date('F j, Y g:i A', strtotime($order['created_at'])); ?></p>
-                <p><strong>Status:</strong> 
-                    <span class="status-badge status-<?php echo strtolower($order['status']); ?>">
-                        <?php echo $order['status']; ?>
-                    </span>
-                </p>
-                <p><strong>Shipping Address:</strong> <?php echo htmlspecialchars($order['shipping_address']); ?></p>
-                <p><strong>Phone:</strong> <?php echo htmlspecialchars($order['phone']); ?></p>
-            </div>
-        </div>
-
-        <div class="order-details">
-            <div class="order-items">
-                <h3>Order Items</h3>
-                <?php while ($item = $result->fetch_assoc()): 
-                    $subtotal = $item['price'] * $item['quantity'];
-                    
-                    $expiry_date = new DateTime($item['expiry_date']);
-                    $today = new DateTime();
-                    $days_until_expiry = $today->diff($expiry_date)->days;
-                ?>
-                    <div class="order-item">
-                        <div style="display: flex; align-items: center;">
-                            <img src="<?php echo !empty($item['image_url']) ? htmlspecialchars($item['image_url']) : 'img&css/placeholder.jpg'; ?>" 
-                                 alt="<?php echo htmlspecialchars($item['product_name']); ?>" 
-                                 class="product-image">
-                            <div>
-                                <strong><?php echo htmlspecialchars($item['product_name']); ?></strong>
-                                <div><?php echo htmlspecialchars($item['category_name']); ?></div>
-                                <div>Quantity: <?php echo $item['quantity']; ?></div>
-                                <?php if ($days_until_expiry <= 30): ?>
-                                    <div class="expiry-warning">
-                                        <i class="fas fa-exclamation-triangle"></i> 
-                                        Expires in <?php echo $days_until_expiry; ?> days
-                                    </div>
-                                <?php endif; ?>
-                            </div>
-                        </div>
-                        <div>$<?php echo number_format($subtotal, 2); ?></div>
+        <div class="order-card">
+            <h5 class="mb-3">Order Items</h5>
+            <?php foreach ($order_items as $item): ?>
+                <div class="d-flex align-items-center mb-3 pb-3 border-bottom">
+                    <img src="<?php echo htmlspecialchars($item['image_url']); ?>" 
+                         alt="<?php echo htmlspecialchars($item['name']); ?>"
+                         style="width: 80px; height: 80px; object-fit: cover; border-radius: 4px; margin-right: 1rem;">
+                    <div class="flex-grow-1">
+                        <h6 class="mb-1"><?php echo htmlspecialchars($item['name']); ?></h6>
+                        <p class="text-muted mb-0">
+                            <?php echo $item['quantity']; ?> x ₱<?php echo number_format($item['price'], 2); ?>
+                        </p>
                     </div>
-                <?php endwhile; ?>
-            </div>
+                    <div class="text-end">
+                        <strong>₱<?php echo number_format($item['price'] * $item['quantity'], 2); ?></strong>
+                    </div>
+                </div>
+            <?php endforeach; ?>
 
-            <div class="order-summary">
-                <h3>Order Summary</h3>
-                <p><strong>Total Amount:</strong> $<?php echo number_format($order['total_amount'], 2); ?></p>
-                <a href="products.php" class="btn btn-primary">Continue Shopping</a>
+            <div class="mt-4">
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Subtotal</span>
+                    <strong>₱<?php echo number_format($order['total_amount'], 2); ?></strong>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Shipping</span>
+                    <strong>Free</strong>
+                </div>
+                <hr>
+                <div class="d-flex justify-content-between mb-4">
+                    <span>Total</span>
+                    <strong class="h5 mb-0">₱<?php echo number_format($order['total_amount'], 2); ?></strong>
+                </div>
             </div>
+        </div>
+
+        <div class="text-center mt-4">
+            <a href="products.php" class="btn btn-primary me-2">
+                <i class="fas fa-shopping-bag"></i> Continue Shopping
+            </a>
+            <a href="profile.php" class="btn btn-outline-primary">
+                <i class="fas fa-user"></i> View Order History
+            </a>
         </div>
     </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html> 

@@ -80,7 +80,7 @@ if (isset($_POST['signin'])) {
 
                 // Redirect based on role
                 if (strtolower($user['role']) === 'admin') {
-                    header("Location: adminhome.php");
+                    header("Location: admin_dashboard.php");
                 } else {
                     header("Location: products.php");
                 }
@@ -107,7 +107,7 @@ $mysqli->close();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
-    <link rel="stylesheet" href="  css/style.css">
+    <link rel="stylesheet" href="css/style.css">
     <link rel="icon" type="image/png" href="img/Followers.png">
     <title>Rhine Lab</title>
 </head>
@@ -132,6 +132,9 @@ $mysqli->close();
                 <input type="password" name="password" placeholder="Password" autocomplete="off" required>
                 <br>
                 <button type="submit" name="signin">Sign In</button>
+                <div class="text-center mt-3">
+                    <a href="reset_password.php" class="text-muted">Forgot Password?</a>
+                </div>
             </form>
         </div>
         <div class="toggle-container">
