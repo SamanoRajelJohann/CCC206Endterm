@@ -128,238 +128,277 @@ $stmt->close();
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" type="image/png" href="img/Followers.png">
     <title>My Profile - Rhine Lab</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
-    <link rel="stylesheet" href="img&css/style.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
+        .profile-container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1.5rem;
         }
         .profile-section {
             background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            margin-bottom: 2rem;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+        }
+        .profile-section:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(0, 0, 0, 0.1);
         }
         .form-group {
-            margin-bottom: 15px;
+            margin-bottom: 1.5rem;
         }
         .form-group label {
             display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #2c3e50;
         }
-        .form-group input {
-            width: 100%;
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
+        .form-control {
+            padding: 0.8rem 1.2rem;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+        .form-control:focus {
+            border-color: #0d6efd;
+            box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.15);
+            outline: none;
         }
         .btn {
-            padding: 8px 16px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            text-decoration: none;
-            display: inline-block;
+            padding: 0.8rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
         }
         .btn-primary {
-            background-color: #4CAF50;
+            background: #0d6efd;
             color: white;
+            box-shadow: 0 4px 12px rgba(13, 110, 253, 0.2);
         }
         .btn-primary:hover {
-            background-color: #45a049;
-        }
-        .nav-links {
-            display: flex;
-            gap: 20px;
-        }
-        .nav-links a {
-            text-decoration: none;
-            color: #333;
-            font-weight: bold;
-        }
-        .nav-links a:hover {
-            color: #4CAF50;
+            background: #0b5ed7;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(13, 110, 253, 0.3);
         }
         .section-title {
-            margin-bottom: 20px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #4CAF50;
-        }
-        .password-section {
-            margin-top: 30px;
-            padding-top: 20px;
-            border-top: 1px solid #ddd;
-        }
-        .order-history {
-            margin-top: 30px;
+            color: #2c3e50;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid rgba(13, 110, 253, 0.1);
         }
         .order-card {
             background: white;
-            padding: 15px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            margin-bottom: 15px;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            margin-bottom: 1rem;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+        }
+        .order-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(0, 0, 0, 0.1);
         }
         .order-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 10px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #eee;
+            margin-bottom: 1rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
         }
         .order-details {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
+            gap: 1.5rem;
         }
         .order-info {
-            font-size: 0.9em;
-            color: #666;
+            font-size: 0.95rem;
+            color: #6c757d;
         }
         .order-info strong {
-            color: #333;
+            color: #2c3e50;
             display: block;
-            margin-bottom: 5px;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
         }
-        .order-status {
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 0.9em;
-            font-weight: bold;
+        .status-badge {
+            padding: 0.5rem 1rem;
+            border-radius: 30px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            display: inline-block;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         }
-        .status-pending {
-            background-color: #fff3cd;
+        .status-pending { 
+            background: #fff3cd; 
             color: #856404;
+            border: 1px solid rgba(133, 100, 4, 0.1);
         }
-        .status-processing {
-            background-color: #cce5ff;
+        .status-processing { 
+            background: #cce5ff; 
             color: #004085;
+            border: 1px solid rgba(0, 64, 133, 0.1);
         }
-        .status-completed {
-            background-color: #d4edda;
+        .status-completed { 
+            background: #d4edda; 
             color: #155724;
+            border: 1px solid rgba(21, 87, 36, 0.1);
         }
-        .status-cancelled {
-            background-color: #f8d7da;
+        .status-cancelled { 
+            background: #f8d7da; 
             color: #721c24;
+            border: 1px solid rgba(114, 28, 36, 0.1);
         }
-        .view-order-btn {
-            background-color: #4CAF50;
-            color: white;
-            padding: 5px 10px;
-            border-radius: 4px;
-            text-decoration: none;
-            font-size: 0.9em;
+        .alert {
+            border: none;
+            border-radius: 12px;
+            padding: 1rem 1.2rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
         }
-        .view-order-btn:hover {
-            background-color: #45a049;
+        .alert-success {
+            background: rgba(25, 135, 84, 0.1);
+            color: #198754;
+        }
+        .alert-danger {
+            background: rgba(220, 53, 69, 0.1);
+            color: #dc3545;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>My Profile</h1>
-            <div class="nav-links">
-                <a href="products.php"><i class="fas fa-shopping-bag"></i> Shop</a>
-                <a href="cart.php"><i class="fas fa-shopping-cart"></i> Cart</a>
-                <a href="logout.php"><i class="fas fa-sign-out-alt"></i> Logout</a>
+    <?php include 'navbar.php'; ?>
+
+    <div class="profile-container">
+        <h1 class="h2 mb-4">My Profile</h1>
+
+        <?php if (isset($_SESSION['success'])): ?>
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <?php echo htmlspecialchars($_SESSION['success']); ?>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
-        </div>
+            <?php unset($_SESSION['success']); ?>
+        <?php endif; ?>
+
+        <?php if (isset($_SESSION['error'])): ?>
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <?php echo htmlspecialchars($_SESSION['error']); ?>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            <?php unset($_SESSION['error']); ?>
+        <?php endif; ?>
 
         <div class="profile-section">
-            <h2 class="section-title">Profile Information</h2>
-            <form method="POST">
-                <div class="form-group">
-                    <label for="username">Username</label>
-                    <input type="text" id="username" name="username" value="<?php echo htmlspecialchars($user['username']); ?>" required>
+            <h2 class="section-title">Personal Information</h2>
+            <form method="POST" action="">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="username">Username</label>
+                            <input type="text" class="form-control" id="username" name="username" value="<?php echo htmlspecialchars($user['username']); ?>" required>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="email">Email</label>
+                            <input type="email" class="form-control" id="email" name="email" value="<?php echo htmlspecialchars($user['email']); ?>" required>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="form-group">
-                    <label for="email">Email</label>
-                    <input type="email" id="email" name="email" value="<?php echo htmlspecialchars($user['email']); ?>" required>
-                </div>
-
-                <div class="form-group">
-                    <label for="address">Address</label>
-                    <input type="text" id="address" name="address" value="<?php echo htmlspecialchars($user['address'] ?? ''); ?>">
-                </div>
-
-                <div class="form-group">
-                    <label for="phone">Phone Number</label>
-                    <input type="tel" id="phone" name="phone" value="<?php echo htmlspecialchars($user['phone'] ?? ''); ?>">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="address">Address</label>
+                            <input type="text" class="form-control" id="address" name="address" value="<?php echo htmlspecialchars($user['address'] ?? ''); ?>">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="phone">Phone Number</label>
+                            <input type="tel" class="form-control" id="phone" name="phone" value="<?php echo htmlspecialchars($user['phone'] ?? ''); ?>">
+                        </div>
+                    </div>
                 </div>
 
                 <div class="password-section">
-                    <h3>Change Password</h3>
-                    <div class="form-group">
-                        <label for="current_password">Current Password</label>
-                        <input type="password" id="current_password" name="current_password">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="new_password">New Password</label>
-                        <input type="password" id="new_password" name="new_password">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="confirm_password">Confirm New Password</label>
-                        <input type="password" id="confirm_password" name="confirm_password">
+                    <h3 class="section-title">Change Password</h3>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label for="current_password">Current Password</label>
+                                <input type="password" class="form-control" id="current_password" name="current_password">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label for="new_password">New Password</label>
+                                <input type="password" class="form-control" id="new_password" name="new_password">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label for="confirm_password">Confirm New Password</label>
+                                <input type="password" class="form-control" id="confirm_password" name="confirm_password">
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <button type="submit" name="update_profile" class="btn btn-primary">Update Profile</button>
+                <button type="submit" name="update_profile" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Update Profile
+                </button>
             </form>
         </div>
 
-        <div class="order-history">
+        <div class="profile-section">
             <h2 class="section-title">Order History</h2>
             <?php if (empty($orders)): ?>
-                <p>No orders found.</p>
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i> You haven't placed any orders yet.
+                </div>
             <?php else: ?>
                 <?php foreach ($orders as $order): ?>
                     <div class="order-card">
                         <div class="order-header">
                             <div>
-                                <h3>Order #<?php echo $order['order_id']; ?></h3>
-                                <small>Placed on <?php echo date('F j, Y', strtotime($order['created_at'])); ?></small>
+                                <strong>Order #<?php echo $order['order_id']; ?></strong>
+                                <div class="text-muted small">
+                                    <?php echo date('F j, Y', strtotime($order['created_at'])); ?>
+                                </div>
                             </div>
-                            <span class="order-status status-<?php echo strtolower($order['status']); ?>">
-                                <?php echo ucfirst($order['status']); ?>
+                            <span class="status-badge status-<?php echo strtolower($order['status']); ?>">
+                                <?php echo $order['status']; ?>
                             </span>
                         </div>
                         <div class="order-details">
                             <div class="order-info">
                                 <strong>Total Items</strong>
-                                <?php echo $order['total_items']; ?> items (<?php echo $order['total_quantity']; ?> units)
+                                <?php echo $order['total_items']; ?>
+                            </div>
+                            <div class="order-info">
+                                <strong>Total Quantity</strong>
+                                <?php echo $order['total_quantity']; ?>
                             </div>
                             <div class="order-info">
                                 <strong>Total Amount</strong>
                                 ₱<?php echo number_format($order['total_amount'], 2); ?>
                             </div>
-                            <div class="order-info">
-                                <strong>Shipping Address</strong>
-                                <?php echo htmlspecialchars($order['shipping_address']); ?>
-                            </div>
-                            <div class="order-info">
-                                <strong>Phone</strong>
-                                <?php echo htmlspecialchars($order['phone']); ?>
-                            </div>
-                        </div>
-                        <div style="margin-top: 15px; text-align: right;">
-                            <a href="order_details.php?id=<?php echo $order['order_id']; ?>" class="view-order-btn">
-                                View Details
-                            </a>
                         </div>
                     </div>
                 <?php endforeach; ?>
@@ -367,18 +406,6 @@ $stmt->close();
         </div>
     </div>
 
-    <?php if (isset($_SESSION['success'])): ?>
-        <script>
-            alert("<?php echo $_SESSION['success']; ?>");
-        </script>
-        <?php unset($_SESSION['success']); ?>
-    <?php endif; ?>
-
-    <?php if (isset($_SESSION['error'])): ?>
-        <script>
-            alert("<?php echo $_SESSION['error']; ?>");
-        </script>
-        <?php unset($_SESSION['error']); ?>
-    <?php endif; ?>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html> 

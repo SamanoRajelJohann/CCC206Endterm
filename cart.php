@@ -71,199 +71,364 @@ $total = 0;
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" type="image/png" href="img/Followers.png">
     <title>Shopping Cart - Rhine Lab</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
-    <link rel="stylesheet" href="img&css/style.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding-top: 100px;
         }
-        .header {
+        .cart-container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1.5rem;
+        }
+        .page-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
+            margin-bottom: 2rem;
+            padding-top: 2.5rem;
+        }
+        .page-header h1 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: #2c3e50;
+            margin: 0;
+        }
+        .cart-section {
+            background: white;
+            border-radius: 16px;
+            padding: 1.8rem;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            margin-bottom: 2rem;
+            border: 1px solid rgba(0, 0, 0, 0.05);
         }
         .cart-table {
             width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 20px;
-        }
-        .cart-table th, .cart-table td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid #ddd;
+            border-collapse: separate;
+            border-spacing: 0;
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            border: 1px solid rgba(0, 0, 0, 0.05);
         }
         .cart-table th {
-            background-color: #f5f5f5;
+            background: #f8f9fa;
+            padding: 1.2rem 1.5rem;
+            font-weight: 600;
+            color: #2c3e50;
+            text-transform: uppercase;
+            font-size: 0.9rem;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid rgba(0, 0, 0, 0.05);
+        }
+        .cart-table td {
+            padding: 1.2rem 1.5rem;
+            color: #2c3e50;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            vertical-align: middle;
+        }
+        .cart-table tr:last-child td {
+            border-bottom: none;
+        }
+        .cart-table tr:hover {
+            background-color: rgba(13, 110, 253, 0.02);
         }
         .product-image {
             width: 80px;
             height: 80px;
             object-fit: cover;
-            border-radius: 4px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        .product-info {
+            margin-left: 1rem;
+        }
+        .product-name {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 0.5rem;
         }
         .quantity-input {
-            width: 60px;
-            padding: 5px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
+            width: 70px;
+            padding: 0.8rem 1.2rem;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            text-align: center;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+        }
+        .quantity-input:focus {
+            border-color: #0d6efd;
+            box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.15);
+            outline: none;
         }
         .btn {
-            padding: 8px 16px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
+            padding: 0.8rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
             text-decoration: none;
-            display: inline-block;
+            border: none;
+            cursor: pointer;
+        }
+        .btn i {
+            font-size: 1rem;
         }
         .btn-primary {
-            background-color: #4CAF50;
+            background: #0d6efd;
             color: white;
-        }
-        .btn-danger {
-            background-color: #f44336;
-            color: white;
+            box-shadow: 0 4px 12px rgba(13, 110, 253, 0.2);
         }
         .btn-primary:hover {
-            background-color: #45a049;
+            background: #0b5ed7;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(13, 110, 253, 0.3);
+        }
+        .btn-outline-primary {
+            border: 2px solid #0d6efd;
+            color: #0d6efd;
+            background: transparent;
+        }
+        .btn-outline-primary:hover {
+            background: #0d6efd;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(13, 110, 253, 0.3);
+        }
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+            box-shadow: 0 4px 12px rgba(220, 53, 69, 0.2);
         }
         .btn-danger:hover {
-            background-color: #da190b;
+            background: #bb2d3b;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(220, 53, 69, 0.3);
+        }
+        .btn-sm {
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
         }
         .cart-summary {
-            background-color: #f5f5f5;
-            padding: 20px;
-            border-radius: 8px;
-            margin-top: 20px;
+            background: white;
+            border-radius: 16px;
+            padding: 1.8rem;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            margin-top: 2rem;
         }
         .cart-summary h3 {
-            margin-top: 0;
+            color: #2c3e50;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid rgba(13, 110, 253, 0.1);
         }
-        .nav-links {
+        .summary-item {
             display: flex;
-            gap: 20px;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+            color: #6c757d;
         }
-        .nav-links a {
-            text-decoration: none;
-            color: #333;
-            font-weight: bold;
-        }
-        .nav-links a:hover {
-            color: #4CAF50;
+        .summary-total {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 2px solid rgba(0, 0, 0, 0.05);
+            font-weight: 600;
+            color: #2c3e50;
+            font-size: 1.1rem;
         }
         .empty-cart {
             text-align: center;
-            padding: 40px;
-            background-color: #f5f5f5;
-            border-radius: 8px;
+            padding: 3rem 2rem;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+        }
+        .empty-cart i {
+            font-size: 4rem;
+            color: #dee2e6;
+            margin-bottom: 1.5rem;
+        }
+        .empty-cart h2 {
+            color: #2c3e50;
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+        .empty-cart p {
+            color: #6c757d;
+            margin-bottom: 1.5rem;
         }
         .expiry-warning {
-            color: #f44336;
-            font-size: 0.9em;
+            color: #dc3545;
+            font-size: 0.875rem;
+            margin-top: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .expiry-warning i {
+            font-size: 1rem;
+        }
+        .alert {
+            border: none;
+            border-radius: 12px;
+            padding: 1rem 1.2rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        }
+        .alert-success {
+            background: rgba(25, 135, 84, 0.1);
+            color: #198754;
+        }
+        .alert-danger {
+            background: rgba(220, 53, 69, 0.1);
+            color: #dc3545;
+        }
+        @media (max-width: 768px) {
+            .cart-table {
+                display: block;
+                overflow-x: auto;
+            }
+            .page-header {
+                flex-direction: column;
+                gap: 1rem;
+                text-align: center;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
+    <?php include 'navbar.php'; ?>
+
+    <div class="cart-container">
+        <div class="page-header">
             <h1>Shopping Cart</h1>
-            <div class="nav-links">
-                <a href="products.php"><i class="fas fa-arrow-left"></i> Continue Shopping</a>
-                <a href="profile.php"><i class="fas fa-user"></i> Profile</a>
-                <a href="logout.php"><i class="fas fa-sign-out-alt"></i> Logout</a>
-            </div>
+            <a href="products.php" class="btn btn-outline-primary">
+                <i class="fas fa-arrow-left"></i> Continue Shopping
+            </a>
         </div>
 
-        <?php if ($result->num_rows > 0): ?>
-            <table class="cart-table">
-                <thead>
-                    <tr>
-                        <th>Product</th>
-                        <th>Category</th>
-                        <th>Price</th>
-                        <th>Quantity</th>
-                        <th>Subtotal</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php while ($item = $result->fetch_assoc()): 
-                        $subtotal = $item['price'] * $item['quantity'];
-                        $total += $subtotal;
-                        
-                        $expiry_date = new DateTime($item['expiry_date']);
-                        $today = new DateTime();
-                        $days_until_expiry = $today->diff($expiry_date)->days;
-                    ?>
-                        <tr>
-                            <td>
-                                <img src="<?php echo !empty($item['image_url']) ? htmlspecialchars($item['image_url']) : 'img&css/placeholder.jpg'; ?>" 
-                                     alt="<?php echo htmlspecialchars($item['name']); ?>" 
-                                     class="product-image">
-                                <div><?php echo htmlspecialchars($item['name']); ?></div>
-                                <?php if ($days_until_expiry <= 30): ?>
-                                    <div class="expiry-warning">
-                                        <i class="fas fa-exclamation-triangle"></i> 
-                                        Expires in <?php echo $days_until_expiry; ?> days
-                                    </div>
-                                <?php endif; ?>
-                            </td>
-                            <td><?php echo htmlspecialchars($item['category_name']); ?></td>
-                            <td>$<?php echo number_format($item['price'], 2); ?></td>
-                            <td>
-                                <form method="POST" style="display: flex; align-items: center; gap: 10px;">
-                                    <input type="hidden" name="cart_id" value="<?php echo $item['cart_id']; ?>">
-                                    <input type="number" name="quantity" value="<?php echo $item['quantity']; ?>" 
-                                           min="1" max="<?php echo $item['stock']; ?>" class="quantity-input">
-                                    <button type="submit" name="update_quantity" class="btn btn-primary">
-                                        <i class="fas fa-sync-alt"></i>
-                                    </button>
-                                </form>
-                            </td>
-                            <td>$<?php echo number_format($subtotal, 2); ?></td>
-                            <td>
-                                <form method="POST" style="display: inline;">
-                                    <input type="hidden" name="cart_id" value="<?php echo $item['cart_id']; ?>">
-                                    <button type="submit" name="remove_item" class="btn btn-danger">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </form>
-                            </td>
-                        </tr>
-                    <?php endwhile; ?>
-                </tbody>
-            </table>
+        <?php if (isset($_SESSION['success'])): ?>
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <?php echo htmlspecialchars($_SESSION['success']); ?>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            <?php unset($_SESSION['success']); ?>
+        <?php endif; ?>
 
-            <div class="cart-summary">
-                <h3>Order Summary</h3>
-                <p>Total Items: <?php echo $result->num_rows; ?></p>
-                <p>Total Amount: $<?php echo number_format($total, 2); ?></p>
-                <a href="checkout.php" class="btn btn-primary">Proceed to Checkout</a>
+        <?php if (isset($_SESSION['error'])): ?>
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <?php echo htmlspecialchars($_SESSION['error']); ?>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            <?php unset($_SESSION['error']); ?>
+        <?php endif; ?>
+
+        <?php if ($result->num_rows > 0): ?>
+            <div class="cart-section">
+                <table class="cart-table">
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th>Category</th>
+                            <th>Price</th>
+                            <th>Quantity</th>
+                            <th>Subtotal</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php while ($item = $result->fetch_assoc()): 
+                            $subtotal = $item['price'] * $item['quantity'];
+                            $total += $subtotal;
+                            
+                            $expiry_date = new DateTime($item['expiry_date']);
+                            $today = new DateTime();
+                            $days_until_expiry = $today->diff($expiry_date)->days;
+                        ?>
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <img src="<?php echo !empty($item['image_url']) ? htmlspecialchars($item['image_url']) : 'img&css/placeholder.jpg'; ?>" 
+                                             alt="<?php echo htmlspecialchars($item['name']); ?>" 
+                                             class="product-image">
+                                        <div class="product-info">
+                                            <div class="product-name"><?php echo htmlspecialchars($item['name']); ?></div>
+                                            <?php if ($days_until_expiry <= 30): ?>
+                                                <div class="expiry-warning">
+                                                    <i class="fas fa-exclamation-triangle"></i>
+                                                    Expires in <?php echo $days_until_expiry; ?> days
+                                                </div>
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td><?php echo htmlspecialchars($item['category_name']); ?></td>
+                                <td>₱<?php echo number_format($item['price'], 2); ?></td>
+                                <td>
+                                    <form method="POST" class="d-flex align-items-center gap-2">
+                                        <input type="hidden" name="cart_id" value="<?php echo $item['cart_id']; ?>">
+                                        <input type="number" name="quantity" value="<?php echo $item['quantity']; ?>" 
+                                               min="1" max="<?php echo $item['stock']; ?>" class="quantity-input">
+                                        <button type="submit" name="update_quantity" class="btn btn-outline-primary btn-sm">
+                                            <i class="fas fa-sync-alt"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                                <td>₱<?php echo number_format($subtotal, 2); ?></td>
+                                <td>
+                                    <form method="POST" class="d-inline">
+                                        <input type="hidden" name="cart_id" value="<?php echo $item['cart_id']; ?>">
+                                        <button type="submit" name="remove_item" class="btn btn-outline-danger btn-sm">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        <?php endwhile; ?>
+                    </tbody>
+                </table>
+
+                <div class="cart-summary">
+                    <h3>Order Summary</h3>
+                    <div class="summary-item">
+                        <span>Total Items:</span>
+                        <span><?php echo $result->num_rows; ?></span>
+                    </div>
+                    <div class="summary-total">
+                        <span>Total Amount:</span>
+                        <span>₱<?php echo number_format($total, 2); ?></span>
+                    </div>
+                    <div class="d-grid gap-2 mt-4">
+                        <a href="checkout.php" class="btn btn-primary">
+                            <i class="fas fa-shopping-cart"></i> Proceed to Checkout
+                        </a>
+                    </div>
+                </div>
             </div>
         <?php else: ?>
             <div class="empty-cart">
-                <i class="fas fa-shopping-cart fa-3x" style="color: #ddd; margin-bottom: 20px;"></i>
+                <i class="fas fa-shopping-cart"></i>
                 <h2>Your cart is empty</h2>
                 <p>Add some products to your cart to continue shopping.</p>
-                <a href="products.php" class="btn btn-primary">Browse Products</a>
+                <a href="products.php" class="btn btn-outline-primary">
+                    <i class="fas fa-shopping-bag"></i> Browse Products
+                </a>
             </div>
         <?php endif; ?>
     </div>
 
-    <?php if (isset($_SESSION['success'])): ?>
-        <script>
-            alert("<?php echo $_SESSION['success']; ?>");
-        </script>
-        <?php unset($_SESSION['success']); ?>
-    <?php endif; ?>
-
-    <?php if (isset($_SESSION['error'])): ?>
-        <script>
-            alert("<?php echo $_SESSION['error']; ?>");
-        </script>
-        <?php unset($_SESSION['error']); ?>
-    <?php endif; ?>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html> 
