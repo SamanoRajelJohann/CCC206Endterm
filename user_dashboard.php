@@ -65,49 +65,146 @@ $stmt->close();
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
         .dashboard-container {
             max-width: 1200px;
             margin: 2rem auto;
-            padding: 0 1rem;
+            padding: 0 1.5rem;
         }
         .dashboard-section {
-            background: white;
-            border-radius: 8px;
-            padding: 1.5rem;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 16px;
+            padding: 1.8rem;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
             margin-bottom: 2rem;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+        }
+        .dashboard-section:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(0, 0, 0, 0.1);
         }
         .stat-card {
-            background: white;
-            border-radius: 8px;
-            padding: 1.5rem;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
             height: 100%;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+        }
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
         }
         .stat-icon {
-            font-size: 2rem;
-            margin-bottom: 1rem;
+            font-size: 2.5rem;
+            margin-bottom: 1.2rem;
+            transition: all 0.3s ease;
+        }
+        .stat-card:hover .stat-icon {
+            transform: scale(1.1);
         }
         .stat-value {
-            font-size: 1.5rem;
-            font-weight: bold;
+            font-size: 2rem;
+            font-weight: 700;
             margin-bottom: 0.5rem;
+            color: #2c3e50;
         }
         .stat-label {
             color: #6c757d;
-            font-size: 0.875rem;
-        }
-        .status-badge {
-            padding: 0.25rem 0.5rem;
-            border-radius: 20px;
-            font-size: 0.875rem;
+            font-size: 1rem;
             font-weight: 500;
         }
-        .status-pending { background: #fff3cd; color: #856404; }
-        .status-processing { background: #cce5ff; color: #004085; }
-        .status-shipped { background: #d4edda; color: #155724; }
-        .status-delivered { background: #d1e7dd; color: #0f5132; }
-        .status-cancelled { background: #f8d7da; color: #721c24; }
+        .status-badge {
+            padding: 0.5rem 1rem;
+            border-radius: 30px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        .status-pending { 
+            background: #fff3cd; 
+            color: #856404;
+            border: 1px solid rgba(133, 100, 4, 0.1);
+        }
+        .status-processing { 
+            background: #cce5ff; 
+            color: #004085;
+            border: 1px solid rgba(0, 64, 133, 0.1);
+        }
+        .status-shipped { 
+            background: #d4edda; 
+            color: #155724;
+            border: 1px solid rgba(21, 87, 36, 0.1);
+        }
+        .status-delivered { 
+            background: #d1e7dd; 
+            color: #0f5132;
+            border: 1px solid rgba(15, 81, 50, 0.1);
+        }
+        .status-cancelled { 
+            background: #f8d7da; 
+            color: #721c24;
+            border: 1px solid rgba(114, 28, 36, 0.1);
+        }
+        .card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+        }
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+        .card-body {
+            padding: 1.2rem;
+        }
+        .btn-outline-primary {
+            border-width: 2px;
+            font-weight: 500;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        .btn-outline-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(13, 110, 253, 0.2);
+        }
+        .alert {
+            border: none;
+            border-radius: 12px;
+            padding: 1rem 1.2rem;
+            background: rgba(13, 110, 253, 0.1);
+            color: #0d6efd;
+        }
+        .h2 {
+            color: #2c3e50;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+        }
+        .h5 {
+            color: #2c3e50;
+            font-weight: 600;
+        }
+        .text-muted {
+            color: #6c757d !important;
+        }
+        img {
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        strong {
+            color: #2c3e50;
+            font-weight: 600;
+        }
+        .small {
+            font-size: 0.875rem;
+        }
     </style>
 </head>
 <body>

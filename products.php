@@ -83,23 +83,150 @@ $products = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .container {
+            max-width: 1400px;
+            padding: 2rem 1.5rem;
+        }
         .product-card {
             height: 100%;
-            transition: transform 0.2s;
+            transition: all 0.3s ease;
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.07);
+            background: white;
         }
         .product-card:hover {
             transform: translateY(-5px);
+            box-shadow: 0 8px 15px rgba(0,0,0,0.1);
         }
         .product-image {
-            height: 200px;
+            height: 250px;
             object-fit: cover;
+            border-radius: 12px 12px 0 0;
         }
         .filters-section {
             background: white;
-            border-radius: 8px;
-            padding: 1.5rem;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.07);
             margin-bottom: 2rem;
+            border: 1px solid rgba(0,0,0,0.05);
+        }
+        .form-label {
+            font-weight: 500;
+            color: #2c3e50;
+            margin-bottom: 0.5rem;
+        }
+        .form-select, .form-control {
+            border-radius: 8px;
+            border: 1px solid rgba(0,0,0,0.1);
+            padding: 0.6rem 1rem;
+            transition: all 0.2s ease;
+        }
+        .form-select:focus, .form-control:focus {
+            border-color: #0d6efd;
+            box-shadow: 0 0 0 0.2rem rgba(13,110,253,0.15);
+        }
+        .btn {
+            padding: 0.6rem 1.2rem;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+        .btn-primary {
+            background: #0d6efd;
+            border: none;
+        }
+        .btn-primary:hover {
+            background: #0b5ed7;
+        }
+        .btn-outline-primary {
+            border-width: 2px;
+        }
+        .btn-outline-secondary {
+            border-width: 2px;
+        }
+        .card-body {
+            padding: 1.5rem;
+        }
+        .card-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 0.75rem;
+            line-height: 1.3;
+        }
+        .card-text {
+            color: #6c757d;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            margin-bottom: 1rem;
+        }
+        .h5.mb-0 {
+            color: #0d6efd;
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+        .text-muted {
+            color: #6c757d !important;
+            font-size: 0.85rem;
+        }
+        .alert {
+            border-radius: 10px;
+            border: none;
+            padding: 1rem 1.2rem;
+        }
+        .alert-info {
+            background-color: #e8f4f8;
+            color: #0c5460;
+        }
+        .input-group {
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .input-group .form-control {
+            border-right: none;
+        }
+        .input-group .btn {
+            border-left: none;
+            padding: 0.6rem 1.2rem;
+        }
+        .h2 {
+            color: #2c3e50;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+        }
+        .small {
+            font-size: 0.875rem;
+        }
+        .mt-2 {
+            margin-top: 1rem !important;
+        }
+        .me-2 {
+            margin-right: 0.75rem !important;
+        }
+        .mb-4 {
+            margin-bottom: 2rem !important;
+        }
+        .g-4 {
+            --bs-gutter-y: 1.5rem;
+            --bs-gutter-x: 1.5rem;
+        }
+        .g-3 {
+            --bs-gutter-y: 1rem;
+            --bs-gutter-x: 1rem;
+        }
+        .btn-secondary:disabled {
+            background-color: #6c757d;
+            opacity: 0.65;
         }
     </style>
 </head>

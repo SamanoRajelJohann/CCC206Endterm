@@ -85,43 +85,82 @@ $expiring_products = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
         .admin-container {
             max-width: 1400px;
             margin: 2rem auto;
-            padding: 0 1rem;
+            padding: 0 1.5rem;
+        }
+        
+        .admin-container h1 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 0;
+            text-align: left;
+            letter-spacing: -0.5px;
         }
         .stat-card {
             background: white;
-            border-radius: 8px;
-            padding: 1.5rem;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border-radius: 12px;
+            padding: 1.8rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.07);
             height: 100%;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            border: 1px solid rgba(0,0,0,0.05);
+        }
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.1);
         }
         .stat-icon {
-            font-size: 2rem;
-            margin-bottom: 1rem;
+            font-size: 2.2rem;
+            margin-bottom: 1.2rem;
+            background: rgba(0,0,0,0.03);
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
         }
         .stat-value {
-            font-size: 1.5rem;
-            font-weight: bold;
+            font-size: 1.8rem;
+            font-weight: 600;
             margin-bottom: 0.5rem;
+            color: #2c3e50;
         }
         .stat-label {
             color: #6c757d;
-            font-size: 0.875rem;
+            font-size: 0.95rem;
+            font-weight: 500;
         }
         .dashboard-section {
             background: white;
-            border-radius: 8px;
-            padding: 1.5rem;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border-radius: 12px;
+            padding: 1.8rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.07);
             margin-bottom: 2rem;
+            border: 1px solid rgba(0,0,0,0.05);
         }
         .nav-links {
-            margin-bottom: 1rem;
+            display: flex;
+            gap: 0.5rem;
+        }
+        .nav-links .btn {
+            padding: 0.6rem 1.2rem;
+            font-weight: 500;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+        }
+        .nav-links .btn:hover {
+            transform: translateY(-2px);
         }
         .status-badge {
-            padding: 0.25rem 0.5rem;
+            padding: 0.4rem 0.8rem;
             border-radius: 20px;
             font-size: 0.875rem;
             font-weight: 500;
@@ -132,26 +171,91 @@ $expiring_products = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
         .status-shipped { background: #d4edda; color: #155724; }
         .status-delivered { background: #d1e7dd; color: #0f5132; }
         .status-cancelled { background: #f8d7da; color: #721c24; }
+        
+        .card {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            transition: transform 0.2s ease;
+        }
+        .card:hover {
+            transform: translateY(-2px);
+        }
+        .card-body {
+            padding: 1.2rem;
+        }
+        .h2 {
+            color: #2c3e50;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+        }
+        .h5 {
+            color: #2c3e50;
+            font-weight: 600;
+            margin-bottom: 1.2rem;
+        }
+        .badge {
+            padding: 0.5rem 0.8rem;
+            font-weight: 500;
+            border-radius: 6px;
+        }
+        .btn-outline-primary {
+            border-width: 2px;
+            font-weight: 500;
+        }
+        .btn-outline-primary:hover {
+            transform: translateY(-2px);
+        }
+        .alert {
+            border-radius: 10px;
+            border: none;
+            padding: 1rem 1.2rem;
+        }
+        .text-muted {
+            color: #6c757d !important;
+        }
+        .small {
+            font-size: 0.875rem;
+        }
+        .mt-2 {
+            margin-top: 1rem !important;
+        }
+        .mt-3 {
+            margin-top: 1.5rem !important;
+        }
+        .mb-2 {
+            margin-bottom: 1rem !important;
+        }
+        .mb-3 {
+            margin-bottom: 1.5rem !important;
+        }
+        .mb-4 {
+            margin-bottom: 2rem !important;
+        }
+        .me-2 {
+            margin-right: 0.75rem !important;
+        }
     </style>
 </head>
 <body>
     <div class="admin-container">
-        <div class="nav-links">
-            <a href="admin_products.php" class="btn btn-outline-primary me-2">
-                <i class="fas fa-box"></i> Products
-            </a>
-            <a href="admin_orders.php" class="btn btn-outline-primary me-2">
-                <i class="fas fa-shopping-cart"></i> Orders
-            </a>
-            <a href="admin_categories.php" class="btn btn-outline-primary me-2">
-                <i class="fas fa-tags"></i> Categories
-            </a>
-            <a href="logout.php" class="btn btn-outline-danger">
-                <i class="fas fa-sign-out-alt"></i> Logout
-            </a>
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="h2 mb-0">Admin Dashboard</h1>
+            <div class="nav-links">
+                <a href="admin_products.php" class="btn btn-outline-primary me-2">
+                    <i class="fas fa-box"></i> Products
+                </a>
+                <a href="admin_orders.php" class="btn btn-outline-primary me-2">
+                    <i class="fas fa-shopping-cart"></i> Orders
+                </a>
+                <a href="admin_categories.php" class="btn btn-outline-primary me-2">
+                    <i class="fas fa-tags"></i> Categories
+                </a>
+                <a href="logout.php" class="btn btn-outline-danger">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </a>
+            </div>
         </div>
-
-        <h1 class="h2 mb-4">Admin Dashboard</h1>
 
         <!-- Statistics Cards -->
         <div class="row g-4 mb-4">
