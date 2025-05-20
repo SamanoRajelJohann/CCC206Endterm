@@ -51,10 +51,12 @@ if (isset($_POST['update_status'])) {
 }
 
 // Get all orders with customer details
-$query = "SELECT o.*, a.username, a.email 
-          FROM orders o 
-          JOIN accounts a ON o.account_id = a.account_id 
-          ORDER BY o.order_date DESC";
+$query = "SELECT o.*, a.username, a.email, COUNT(oi.order_item_id) as total_items
+          FROM orders o
+          JOIN accounts a ON o.account_id = a.account_id
+          LEFT JOIN order_items oi ON o.order_id = oi.order_id
+          GROUP BY o.order_id
+          ORDER BY o.created_at DESC";
 $result = $mysqli->query($query);
 $orders = $result->fetch_all(MYSQLI_ASSOC);
 ?>
@@ -65,6 +67,7 @@ $orders = $result->fetch_all(MYSQLI_ASSOC);
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Order Status Management - Rhine Lab</title>
+    <link rel="icon" type="image/png" href="img/Followers.png">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
@@ -127,7 +130,7 @@ $orders = $result->fetch_all(MYSQLI_ASSOC);
                                     <i class="fas fa-envelope"></i> <?php echo htmlspecialchars($order['email']); ?>
                                 </p>
                                 <p class="text-muted mb-0">
-                                    <i class="fas fa-calendar"></i> <?php echo date('M d, Y', strtotime($order['order_date'])); ?>
+                                    <i class="fas fa-calendar"></i> <?php echo date('M d, Y', strtotime($order['created_at'])); ?>
                                 </p>
                             </div>
                             <div class="col-md-3">

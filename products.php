@@ -83,14 +83,6 @@ $products = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        body {
-            background-color: #f8f9fa;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-        .container {
-            max-width: 1400px;
-            padding: 2rem 1.5rem;
-        }
         .product-card {
             height: 100%;
             transition: all 0.3s ease;
@@ -131,12 +123,6 @@ $products = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
             border-color: #0d6efd;
             box-shadow: 0 0 0 0.2rem rgba(13,110,253,0.15);
         }
-        .btn {
-            padding: 0.6rem 1.2rem;
-            border-radius: 8px;
-            font-weight: 500;
-            transition: all 0.2s ease;
-        }
         .btn:hover {
             transform: translateY(-2px);
         }
@@ -172,7 +158,7 @@ $products = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
         .h5.mb-0 {
             color: #0d6efd;
             font-weight: 600;
-            font-size: 1.1rem;
+            font-size: 2.1rem;
         }
         .text-muted {
             color: #6c757d !important;
@@ -326,19 +312,19 @@ $products = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
                                 </p>
                                 <div class="d-flex justify-content-between align-items-center">
                                     <span class="h5 mb-0">₱<?php echo number_format($product['price'], 2); ?></span>
-                                    <div>
-                                        <a href="product_details.php?id=<?php echo $product['product_id']; ?>" class="btn btn-outline-primary me-2">
-                                            <i class="fas fa-eye"></i> View Details
+                                    <div class="d-flex flex-column align-items-end gap-2 ms-3" style="min-width: 160px;">
+                                        <a href="product_details.php?id=<?php echo $product['product_id']; ?>" class="btn btn-outline-primary btn-lg w-100 d-flex align-items-center justify-content-center">
+                                            <i class="fas fa-eye me-2"></i> View Details
                                         </a>
                                         <?php if ($product['stock'] > 0): ?>
-                                            <form method="POST" action="add_to_cart.php" class="d-inline">
+                                            <form method="POST" action="add_to_cart.php" class="d-inline w-100">
                                                 <input type="hidden" name="product_id" value="<?php echo $product['product_id']; ?>">
-                                                <button type="submit" class="btn btn-primary">
-                                                    <i class="fas fa-cart-plus"></i> Add to Cart
+                                                <button type="submit" class="btn btn-primary btn-lg w-100 d-flex align-items-center justify-content-center">
+                                                    <i class="fas fa-cart-plus me-2"></i> Add to Cart
                                                 </button>
                                             </form>
                                         <?php else: ?>
-                                            <button class="btn btn-secondary" disabled>Out of Stock</button>
+                                            <button class="btn btn-secondary btn-lg w-100 d-flex align-items-center justify-content-center" disabled>Out of Stock</button>
                                         <?php endif; ?>
                                     </div>
                                 </div>
