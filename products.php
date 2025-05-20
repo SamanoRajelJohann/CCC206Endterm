@@ -97,8 +97,9 @@ $products = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
         }
         .product-image {
             height: 250px;
-            object-fit: cover;
+            object-fit: contain;
             border-radius: 12px 12px 0 0;
+            background: #fff;
         }
         .filters-section {
             background: white;

@@ -77,7 +77,7 @@ $total = 0;
         body {
             background-color: #f8f9fa;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            padding-top: 100px;
+            
         }
         .cart-container {
             max-width: 1200px;
@@ -166,56 +166,6 @@ $total = 0;
             box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.15);
             outline: none;
         }
-        .btn {
-            padding: 0.8rem 1.5rem;
-            border-radius: 8px;
-            font-weight: 500;
-            transition: all 0.3s ease;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            text-decoration: none;
-            border: none;
-            cursor: pointer;
-        }
-        .btn i {
-            font-size: 1rem;
-        }
-        .btn-primary {
-            background: #0d6efd;
-            color: white;
-            box-shadow: 0 4px 12px rgba(13, 110, 253, 0.2);
-        }
-        .btn-primary:hover {
-            background: #0b5ed7;
-            transform: translateY(-2px);
-            box-shadow: 0 6px 15px rgba(13, 110, 253, 0.3);
-        }
-        .btn-outline-primary {
-            border: 2px solid #0d6efd;
-            color: #0d6efd;
-            background: transparent;
-        }
-        .btn-outline-primary:hover {
-            background: #0d6efd;
-            color: white;
-            transform: translateY(-2px);
-            box-shadow: 0 6px 15px rgba(13, 110, 253, 0.3);
-        }
-        .btn-danger {
-            background: #dc3545;
-            color: white;
-            box-shadow: 0 4px 12px rgba(220, 53, 69, 0.2);
-        }
-        .btn-danger:hover {
-            background: #bb2d3b;
-            transform: translateY(-2px);
-            box-shadow: 0 6px 15px rgba(220, 53, 69, 0.3);
-        }
-        .btn-sm {
-            padding: 0.5rem 1rem;
-            font-size: 0.875rem;
-        }
         .cart-summary {
             background: white;
             border-radius: 16px;
@@ -246,28 +196,6 @@ $total = 0;
             font-weight: 600;
             color: #2c3e50;
             font-size: 1.1rem;
-        }
-        .empty-cart {
-            text-align: center;
-            padding: 3rem 2rem;
-            background: white;
-            border-radius: 16px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-            border: 1px solid rgba(0, 0, 0, 0.05);
-        }
-        .empty-cart i {
-            font-size: 4rem;
-            color: #dee2e6;
-            margin-bottom: 1.5rem;
-        }
-        .empty-cart h2 {
-            color: #2c3e50;
-            font-weight: 700;
-            margin-bottom: 1rem;
-        }
-        .empty-cart p {
-            color: #6c757d;
-            margin-bottom: 1.5rem;
         }
         .expiry-warning {
             color: #dc3545;
@@ -306,18 +234,20 @@ $total = 0;
                 text-align: center;
             }
         }
+        .empty-cart {
+            text-align: center;
+            padding: 3rem;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
     </style>
 </head>
 <body>
     <?php include 'navbar.php'; ?>
 
     <div class="cart-container">
-        <div class="page-header">
-            <h1>Shopping Cart</h1>
-            <a href="products.php" class="btn btn-outline-primary">
-                <i class="fas fa-arrow-left"></i> Continue Shopping
-            </a>
-        </div>
+        <h1 class="h2 mb-4">My Shopping Cart</h1>
 
         <?php if (isset($_SESSION['success'])): ?>
             <div class="alert alert-success alert-dismissible fade show" role="alert">
@@ -419,10 +349,10 @@ $total = 0;
             </div>
         <?php else: ?>
             <div class="empty-cart">
-                <i class="fas fa-shopping-cart"></i>
-                <h2>Your cart is empty</h2>
+                <i class="fas fa-shopping-cart fa-3x text-muted mb-3"></i>
+                <h3>Your cart is empty</h3>
                 <p>Add some products to your cart to continue shopping.</p>
-                <a href="products.php" class="btn btn-outline-primary">
+                <a href="products.php" class="btn btn-primary">
                     <i class="fas fa-shopping-bag"></i> Browse Products
                 </a>
             </div>
